@@ -1,5 +1,6 @@
-/codigos/.idea/.*
-/codigos/.idea/*
+/.idea/.*
+/.idea/*
+.idea/*
 /codigos/in-dev/vtk/*
 /codigos/in-dev/exemplos/*
 /codigos/in-dev/temp/*.vtk
