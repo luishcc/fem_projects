@@ -61,7 +61,7 @@ def search2D(_np, _neighbours, _ien, _x, _y, _xd, _yd, order='1'):
         px = _xd[i]
         py = _yd[i]
 
-        for e in _neighbours:
+        for e in _neighbours[i]:
             v1 = _ien[e, 0]
             v2 = _ien[e, 1]
             v3 = _ien[e, 2]
@@ -73,6 +73,8 @@ def search2D(_np, _neighbours, _ien, _x, _y, _xd, _yd, order='1'):
             y1 = _y[v1]
             y2 = _y[v2]
             y3 = _y[v3]
+
+
 
 
     return
