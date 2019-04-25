@@ -205,3 +205,33 @@ def combine1D(malha1, malha2):
         IEN[i] += i/(numx)
     return x, y, IEN
 
+def neighbourElements(_np, _ien):
+    result = [None] * _np
+    for i in range(_np):
+        result[i] = []
+        for e in range(len(_ien)):
+            for j in range(3):
+                if _ien[e, j] == i:
+                    result[i].append(e)
+
+    return result
+
+
+
+def neighbourTest(_np):
+    result = [None] * _np
+    for i in range(_np):
+        result[i] = []
+    #
+    # result = np.empty((_np,), dtype=object)
+    # for i in range(_np):
+    #     result[i] = []
+
+    for j in range(3):
+        for i in range(_np):
+            result[i].append(j)
+
+    result[3].append(9)
+
+    print result
+    return result
