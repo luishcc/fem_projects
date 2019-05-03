@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 import scipy as sp
-import GMesh as Gm
+import libmalha as lm
 
 tempo = 100
 dt = 0.01
@@ -11,27 +11,27 @@ reinv = 1.0/Re
 
     # Definição da malha
 
-arquivo = "ret"
-
-malha = Gm.GMesh(arquivo+".msh")
-
+x, y, ien = libmalha.lin2d(5, 50, 1, 10)
+ien = libmalha.ret_tri(ien)
+np = len(x)
+Nelem = len(ien)
 
     #Implementando Condicao inicial e velocidade
 
-v = sp.zeros((malha.Nnodes, 2))
+v = sp.zeros((np, 2))
 U = 1.5
 a = - 4 * U
 b = 4 * U
-for i in range(malha.Nnodes):
-    v[i][0] = a * (malha.Y[i]**2) + b * malha.Y[i]
+for i in range(np):
+    v[i][0] = a * (y[i]**2) + b * y[i]
 
-x_d = malha.X - v[:, 0] * dt
-y_d = malha.Y - v[:, 1] * dt
+x_d = x - v[:, 0] * dt
+y_d = y - v[:, 1] * dt
 
 
-T_ini = sp.zeros(malha.Nnodes)
-for i in range(malha.Nnodes):
-    T_ini[i] = 10 * (malha.X[i]-0.5)**2 + 10 * (malha.Y[i]-0.5)**2
+T_ini = sp.zeros(np)
+for i in range(np):
+    T_ini[i] = 10 * (x[i]-0.5)**2 + 10 * (y[i]-0.5)**2
 
 
 # Assembly
@@ -79,7 +79,7 @@ def fem_matrix(_x, _y, _numele, _numnode, _ien):
 
     return  k_global, m_global
 
-K, M = fem_matrix(malha.X, malha.Y, malha.Nelem, malha.Nnodes, malha.IEN)
+K, M = fem_matrix(x, y, Nelem, np, ien)
 
 kre = K * reinv
 mdt = M * dtinv
