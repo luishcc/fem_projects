@@ -1,9 +1,14 @@
 # -*- coding: utf-8 -*-
 import scipy as sp
+import semiLagrangean as sl
 import libmalha as lm
+import InOut as Io
+import os
 
-tempo = 100
-dt = 0.01
+cwd = os.getcwd()
+
+tempo = 1000
+dt = 0.001
 Re = 10
 
 dtinv = 1.0/dt
@@ -11,8 +16,8 @@ reinv = 1.0/Re
 
     # Definição da malha
 
-x, y, ien = libmalha.lin2d(5, 50, 1, 10)
-ien = libmalha.ret_tri(ien)
+x, y, ien = lm.lin2d(50, 5, 4, 1)
+ien = lm.ret_tri(ien)
 np = len(x)
 Nelem = len(ien)
 
@@ -31,7 +36,8 @@ y_d = y - v[:, 1] * dt
 
 T_ini = sp.zeros(np)
 for i in range(np):
-    T_ini[i] = 10 * (x[i]-0.5)**2 + 10 * (y[i]-0.5)**2
+    if 0.1 >= x[i]:
+        T_ini[i] = 1000 * sp.sin(10 * sp.pi * x[i])
 
 
 # Assembly
@@ -88,24 +94,36 @@ T_i = sp.copy(T_ini)
 
 
 
-exit()
-
 # buscar elemento de x_d e y_d
-# TO DO
+
+neighbour = lm.neighbourElements(np, ien)
+newEle, area_coord, outside_p = sl.search2D(np, neighbour, ien, x, y, x_d, y_d)
 
 # Time Loop
 
+T_ip = sp.copy(T_ini)
+T_ile = sp.copy(T_ini)
+
+vtk = Io.InOut(x, y, ien, len(x), len(ien), T_ini, T_ini, T_ini, None, None, v[:, 0], v[:, 1])
+vtk.saveVTK(cwd + "/results", "test" + str(0))
 for t in range(tempo):
 
     # interpolar T_i para descobrir T_d
-    # TO DO
+    T_d = sl.interpolate2D(T_i, ien, newEle, area_coord, outside_p)
+    T_dle = sl.Linear2D(np, neighbour, ien, x, y, v[:,0], v[:,1], dt, T_i)
 
     # sistema
 
     LHS = mdt + kre
-    RHS = sp.dot((mdt) * T_d)
+    RHS = sp.dot(mdt, T_d)
 
     #cc
 
+
     T_i = sp.linalg.solve(LHS, RHS)
+    T_ip = sp.copy(T_d)
+    T_ile = sp.copy(T_dle)
+
+    vtk = Io.InOut(x, y, ien, len(x), len(ien), T_i, T_ip, T_ile, None, None, v[:, 0], v[:, 1])
+    vtk.saveVTK(cwd+"/results", "test" + str(t+1))
 
