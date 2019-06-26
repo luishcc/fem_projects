@@ -1,84 +1,61 @@
 # -*- coding: utf-8 -*-
+import GMesh as gm
+import InOut as IO
 import scipy as sp
 from scipy import linalg
-import InOut as Io
-import GMesh as Gm
+from scipy import sparse
+from scipy.sparse.linalg import spsolve
 import os
+import sys
 
 cwd = os.getcwd()
-
 
 # -------------------------------------------------------
 #     Reading Mesh
 # -------------------------------------------------------
 
-arquivo = "5valid"
+mesh_file = "mesh/poiseuille"
 
-malha_total = Gm.GMesh(arquivo+".msh")
+fluid_mesh = gm.GMesh(mesh_file+"-fld.msh")
 
-x_total = malha_total.X
-y_total = malha_total.Y
-ien_total = malha_total.IEN
-nodes_total = len(x_total)
-num_ele_total = len(ien_total)
-
-malha_fluid = Gm.GMesh(arquivo+"-fld.msh")
-
-x_fluid = malha_fluid.X
-y_fluid = malha_fluid.Y
-ien_fluid = malha_fluid.IEN
+x_fluid = fluid_mesh.X
+y_fluid = fluid_mesh.Y
+ien_fluid = fluid_mesh.IEN
 nodes_fluid = len(x_fluid)
 num_ele_fluid = len(ien_fluid)
 
-Vel_points_convert = sp.zeros(nodes_total) -1
-for i in range(nodes_total):
-    for j in range(nodes_fluid):
-        if (x_total[i] == x_fluid[j]) and (y_total[i] == y_fluid[j]):
-            Vel_points_convert[i] = j
-
 
 # -------------------------------------------------------
-#     Defining Parameters
+#     Simulation Parameters
 # -------------------------------------------------------
 
-dt = 0.005
-tempo = 400
+dt = 0.01
+dt_inv = 1. / dt
+time = 1000
 
-alfa_solid = 1.0
+# Fluid properties
+rho_fluid = 1000
+viscostity_din = 0.8e-03
+viscostity_kin = viscostity_din / rho_fluid
+termCondutivity_fluid = 0.6089
+spHeat_fluid = 4137.9
+termDiffusivity_fluid = termCondutivity_fluid / (rho_fluid * spHeat_fluid)
 
-Mi = 0.1
-cp_fld = 1.0
-rho_fld = 1.0
-kt_fld = 0.1
+# -------------------------------------------------------
+#     Initial Condition
+# -------------------------------------------------------
 
-alfa_fld = kt_fld / (rho_fld*cp_fld)
-Ni = Mi / rho_fld
+# Flow
+omega_last = sp.zeros(nodes_fluid)
+psi_last = sp.zeros(nodes_fluid)
+vz = sp.zeros(nodes_fluid)
+vr = sp.zeros(nodes_fluid)
 
+# -------------------------------------------------------
+#     Matrix Assembly
+# -------------------------------------------------------
 
-# ---------------------------------------
-# Wz, Psi, T e velocidade inicial
-# ---------------------------------------
-
-Psi_new = sp.zeros(nodes_fluid, dtype="float64")
-Wz_new = sp.zeros(nodes_fluid, dtype="float64")
-vx = sp.zeros(nodes_fluid, dtype="float64")
-vy = sp.zeros(nodes_fluid, dtype="float64")
-
-vx_total = sp.zeros(nodes_total, dtype="float64")
-vy_total = sp.zeros(nodes_total, dtype="float64")
-
-Temp_old = sp.ones(nodes_total, dtype="float64")
-for i in range(len(malha_total.dirichlet_points)):
-    index = int(malha_total.dirichlet_points[i][0]-1)
-    value = malha_total.dirichlet_points[i][1]
-    Temp_old[index] = value
-
-
-# ---------------------------------------
-# Montagem de matrizes
-# ---------------------------------------
-
-def fem_matrix(_x, _y, _numele, _numnode, _ien, _alfa):
+def fem_matrix(_x, _y, _numele, _numnode, _ien):
     k_local = sp.zeros((3, 3), dtype="float64")
     m_local = sp.array([[2, 1, 1], [1, 2, 1], [1, 1, 2]], dtype="float64")
     gx_local = sp.zeros((3, 3), dtype="float64")
@@ -90,21 +67,22 @@ def fem_matrix(_x, _y, _numele, _numnode, _ien, _alfa):
     xx = sp.zeros(3, dtype="float64")
     k_global = sp.zeros((_numnode, _numnode), dtype="float64")
     m_global = sp.zeros((_numnode, _numnode), dtype="float64")
+    m2_global = sp.zeros((_numnode, _numnode), dtype="float64")
     gx_global = sp.zeros((_numnode, _numnode), dtype="float64")
+    gx2 = sp.zeros((_numnode, _numnode), dtype="float64")
     gy_global = sp.zeros((_numnode, _numnode), dtype="float64")
 
     for elem in range(_numele):
-        alfa = 0
         for i in range(3):
             xx[i] = _x[_ien[elem, i]]
             yy[i] = _y[_ien[elem, i]]
-            alfa += _alfa[_ien[elem, i]]
 
-        alfa = alfa * (1/3.0)
-        a[0] = xx[0] * yy[1] - xx[1] * yy[0]
+        a[0] = xx[0] * yy[1] - xx[1] * yy[0]        # Change with a[2]?
         a[1] = xx[2] * yy[0] - xx[0] * yy[2]
         a[2] = xx[1] * yy[2] - xx[2] * yy[1]
-        Area = (a[0] + a[1] + a[2]) / 2.
+        area = (a[0] + a[1] + a[2]) / 2.
+
+        radius = (1./3.) * (yy[0] + yy[1] + yy[2])
 
         b[0] = yy[1] - yy[2]
         b[1] = yy[2] - yy[0]
@@ -115,21 +93,34 @@ def fem_matrix(_x, _y, _numele, _numnode, _ien, _alfa):
 
         for i in range(3):
             for j in range(3):
-                k_local[i, j] = (b[i] * b[j] + c[i] * c[j]) / (4 * Area)
-                gx_local[i,j] = b[j] * (1/6.)
-                gy_local[i,j] = c[j] * (1/6.)
+                k_local[i, j] = (b[i] * b[j] + c[i] * c[j]) * 0.25 * radius * (1. / area)
+                gx_local[i, j] = b[j] * (1/6.)
+                gy_local[i, j] = c[j] * (1/6.)
 
         for i_local in range(3):
             i_global = _ien[elem, i_local]
             for j_local in range(3):
                 j_global = _ien[elem, j_local]
-                k_global[i_global, j_global] += k_local[i_local, j_local]*alfa
-                m_global[i_global, j_global] += m_local[i_local, j_local]* (Area/12.)
-                gx_global[i_global, j_global] += gx_local[i_local, j_local]
-                gy_global[i_global, j_global] += gy_local[i_local, j_local]
+                k_global[i_global, j_global] += k_local[i_local, j_local]
+                m_global[i_global, j_global] += m_local[i_local, j_local] * radius * (area/12.)
+                m2_global[i_global, j_global] += m_local[i_local, j_local] * radius * (area/12.)
+                gx_global[i_global, j_global] += gx_local[i_local, j_local] * radius
+                gx2[i_global, j_global] += gx_local[i_local, j_local] * radius
+                gy_global[i_global, j_global] += gy_local[i_local, j_local] * radius
+
+    return k_global, m_global, gx_global, gy_global, m2_global, gx2
+
+K, M, Gx, Gy, M2, gx2 = fem_matrix(x_fluid, y_fluid, num_ele_fluid, nodes_fluid, ien_fluid)
 
 
-    return  k_global, m_global, gx_global, gy_global
+
+
+
+
+
+"""
+
+From flowTemp-encit.py:
 
 
 # --------------------------------------
@@ -336,3 +327,4 @@ for t in range(0, tempo):
 
 # ----------------- Fim de Loop -------------------
 # -------------------------------------------------
+"""
