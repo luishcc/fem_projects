@@ -7,7 +7,7 @@
 import numpy as np
 
 class InOut:
- def __init__(_self,_X,_Y,_IEN,_numVerts,_numElems,_scalar, _scalar2, _scalar3):
+ def __init__(_self,_X,_Y,_IEN,_numVerts,_numElems,_scalar, _scalar2, _scalar3, _scalar4, _scalar5, _vet1, _vet2):
   _self.X = _X
   _self.Y = _Y
   _self.IEN = _IEN
@@ -16,6 +16,10 @@ class InOut:
   _self.scalar = _scalar
   _self.scalar2 = _scalar2
   _self.scalar3 = _scalar3
+  _self.scalar4 = _scalar4
+  _self.scalar5 = _scalar5
+  _self.vet1 = _vet1
+  _self.vet2 = _vet2
 
 
  def saveVTK(_self,_dir,_file,_iter=None):
@@ -33,14 +37,22 @@ class InOut:
   _self.vtkScalarScalarHeader(vtkFile)
 
   if _self.scalar is not None:
-   _self.vtkScalar(vtkFile,"temp",_self.scalar);
+   _self.vtkScalar(vtkFile,"Psi",_self.scalar);
 
   if _self.scalar2 is not None:
-   _self.vtkScalar(vtkFile,"tempy_analitic",_self.scalar2);
+   _self.vtkScalar(vtkFile,"Omega",_self.scalar2);
 
   if _self.scalar3 is not None:
-   _self.vtkScalar(vtkFile,"tempx_analitic",_self.scalar3);
+   _self.vtkScalar(vtkFile,"Vx_analytic",_self.scalar3);
 
+  if _self.scalar4 is not None:
+   _self.vtkScalar(vtkFile,"Stream",_self.scalar4);
+
+  if _self.scalar5 is not None:
+   _self.vtkScalar(vtkFile,"Vorticity",_self.scalar5);
+
+  if _self.vet1 is not None:
+   _self.vtkVector(vtkFile,"Velocity",_self.vet1, _self.vet2);
 
   vtkFile.close()
 
