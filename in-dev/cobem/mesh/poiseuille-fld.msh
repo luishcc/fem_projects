@@ -3,10 +3,10 @@ $MeshFormat
 $EndMeshFormat
 $PhysicalNames
 4
-1 1 "in"
-1 2 "out"
-1 3 "top"
-1 4 "bot"
+1 1 "neumann 0"
+1 2 "neumann 0"
+1 3 "dirichlet 1"
+1 4 "dirichlet 0"
 $EndPhysicalNames
 $Nodes
 1357
