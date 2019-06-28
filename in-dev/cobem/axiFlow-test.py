@@ -28,7 +28,7 @@ num_ele_fluid = len(ien_fluid)
 # -------------------------------------------------------
 
 dt = 0.005
-time = 1000
+time = 400
 
 # Fluid properties
 rho_fluid = 1000
@@ -153,28 +153,28 @@ list4 = []
 list5 = []
 
 for i in range(nodes_fluid):
-    if x_fluid[i] == 0.:
+    if x_fluid[i] == 0:
         Fluid_Boundary_in[i] = i
     else:
         list1.append(i)
 
-    if x_fluid[i] == 5.:
+    if x_fluid[i] == 5:
         Fluid_Boundary_out[i] = i
     else:
         list2.append(i)
 
-    if y_fluid[i] == 1.:
+    if y_fluid[i] == 1:
         Fluid_Boundary_wall[i] = i
     else:
         list3.append(i)
 
-    if y_fluid[i] == 0.:
+    if y_fluid[i] == 0:
         Fluid_Boundary_axis[i] = i
     else:
         list4.append(i)
 
-    if x_fluid[i] == 0. or x_fluid[i] == 5. \
-            or y_fluid[i] == 0. or y_fluid[i] == 1.:
+    if x_fluid[i] == 0 or x_fluid[i] == 5 \
+            or y_fluid[i] == 0 or y_fluid[i] == 1:
         Fluid_Boundary[i] = i
     else:
         list5.append(i)
@@ -221,8 +221,9 @@ for i in range(dirichlet_len_fluid):
 for i in Fluid_Boundary:
     j = int(i)
     vr[j] = 0.0
-    if x_fluid[j] == 0.:
-        vz[j] = 1.0
+    if x_fluid[j] == 0:
+        # vz[j] = 1.0
+        vz[j] = vz_a[j]
     if y_fluid[j] == 1:
         vz[j] = 0
         vr[j] = 0
@@ -244,7 +245,7 @@ psi_last = sp.linalg.solve(K_psi, F_psi)
 # ---------------------- Loop No Tempo ------------------------
 
 for t in range(0, time):
-    print "Solving System " + str((float(t)/(time))*100) + "%"
+    print "Solving System " + str((float(t)/time)*100) + "%"
 
     # vr = sp.zeros(nodes_fluid)
 
@@ -255,9 +256,10 @@ for t in range(0, time):
             vz[index] = 0.
             vr[index] = 0.
         if x_fluid[index] == 0:
-            vz[index] = 1.
-     #   if y_fluid[index] == 0:
-      #      vz[index] = 4.
+            # vz[index] = 1.
+            vz[index] = vz_a[index]
+        if y_fluid[index] == 0:
+            vz[index] = 4.
 
     # B.C. Vorticidade
     W_in = sp.multiply(MinvLump, (sp.dot(Gx, vr) - sp.dot(Gy, vz)))
@@ -271,16 +273,16 @@ for t in range(0, time):
     LHS_Ni = Mdt + K_ni + sp.diag(Conv)
     LHS_omega = sp.copy(LHS_Ni)
 
-    #for i in range(len(Fluid_Boundary_in)):
-    #    index = int(Fluid_Boundary_in[i])
-    #    value = W_in[index]
-    #    for j in range(nodes_fluid):
-    #        ccomega[j] -= value * LHS_Ni[j, index]
-    #        if j != index:
-    #            LHS_omega[index, j] = 0
-    #            LHS_omega[j, index] = 0
-    #        else:
-    #            LHS_omega[index, j] = 1
+    for i in range(len(Fluid_Boundary_in)):
+       index = int(Fluid_Boundary_in[i])
+       value = 8*y_fluid[index]
+       for j in range(nodes_fluid):
+           ccomega[j] -= value * LHS_Ni[j, index]
+           if j != index:
+               LHS_omega[index, j] = 0
+               LHS_omega[j, index] = 0
+           else:
+               LHS_omega[index, j] = 1
 
     for i in range(len(Fluid_Boundary_axis)):
         index = int(Fluid_Boundary_axis[i])
@@ -306,9 +308,9 @@ for t in range(0, time):
 
     F_omega = sp.dot(Mdt, omega_last) + ccomega  # - sp.dot(Conv, omega_last)
 
-    #for i in range(len(Fluid_Boundary_in)):
-    #    index = int(Fluid_Boundary_in[i])
-    #    F_omega[index] = W_in[index]
+    for i in range(len(Fluid_Boundary_in)):
+       index = int(Fluid_Boundary_in[i])
+       F_omega[index] = 8*y_fluid[index]
 
     for i in range(len(Fluid_Boundary_wall)):
         index = int(Fluid_Boundary_wall[i])
