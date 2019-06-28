@@ -46,10 +46,10 @@ class InOut:
    _self.vtkScalar(vtkFile,"Vx_analytic",_self.scalar3);
 
   if _self.scalar4 is not None:
-   _self.vtkScalar(vtkFile,"Stream",_self.scalar4);
+   _self.vtkScalar(vtkFile,"Psi_analytic",_self.scalar4);
 
   if _self.scalar5 is not None:
-   _self.vtkScalar(vtkFile,"Vorticity",_self.scalar5);
+   _self.vtkScalar(vtkFile,"Omega_analytic",_self.scalar5);
 
   if _self.vet1 is not None:
    _self.vtkVector(vtkFile,"Velocity",_self.vet1, _self.vet2);

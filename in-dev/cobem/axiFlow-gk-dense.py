@@ -225,8 +225,8 @@ for i in Fluid_Boundary:
     if y_fluid[j] == 1:
         vz[j] = 0
         vr[j] = 0
-    if y_fluid[j] == 0:
-        vz[j] = 4
+   # if y_fluid[j] == 0:
+    #    vz[j] = 4
 
 omega_last = sp.multiply(MinvLump, (sp.dot(Gx, vr) - sp.dot(Gy, vz)))
 
@@ -255,8 +255,8 @@ for t in range(0, time):
             vr[index] = 0.
         if x_fluid[index] == 0:
             vz[index] = 1.
-        if y_fluid[index] == 0:
-            vz[index] = 4.
+     #   if y_fluid[index] == 0:
+      #      vz[index] = 4.
 
     # B.C. Vorticidade
     W_in = sp.multiply(MinvLump, (sp.dot(Gx, vr) - sp.dot(Gy, vz)))
