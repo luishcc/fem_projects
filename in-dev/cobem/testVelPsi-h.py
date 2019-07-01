@@ -88,8 +88,8 @@ def fem_matrix(_x, _y, _numele, _numnode, _ien):
 
         for i in range(3):
             for j in range(3):
-                # k_local[i, j] = (b[i] * b[j] + c[i] * c[j]) * 0.25 * radius * (1./ area)
-                k_local[i, j] = (b[i] * b[j] + c[i] * c[j]) * 0.25 * radius**2 * (1./ area)
+                k_local[i, j] = (b[i] * b[j] + c[i] * c[j]) * 0.25 * radius * (1./ area)
+                # k_local[i, j] = (b[i] * b[j] + c[i] * c[j]) * 0.25 * radius**2 * (1./ area)
                 gx_local[i, j] = b[j] * (1/6.)
                 gy_local[i, j] = c[j] * (1/6.)
 
@@ -144,11 +144,11 @@ for i in range(nodes_fluid):
 # --------------------------------------
 # Psi K matrix with Dirichlet BC -- K_psi
 
-K_psi = K - 2 * Gy
+K_psi = K - 2 * Gy2
 ccpsi = sp.zeros(nodes_fluid)
 for i in range(dirichlet_len_fluid):
     index = int(fluid_mesh.dirichlet_points[i][0] - 1)
-    value = fluid_mesh.dirichlet_points[i][1]
+    value = fluid_mesh.dirichlet_points[i][1]+2
     for j in range(nodes_fluid):
         ccpsi[j] -= value * K[j, index]
         if j != index:
@@ -159,7 +159,7 @@ for i in range(dirichlet_len_fluid):
 
 
 # F_psi = sp.dot(M, omega_a / (y_fluid+0.001)) + ccpsi
-F_psi = sp.dot(M, omega_a) + ccpsi
+F_psi = sp.dot(M3, omega_a) + ccpsi
 # F_psi = sp.multiply(MinvLump3, omega_a) + ccpsi
 for i in range(dirichlet_len_fluid):
     index = int(fluid_mesh.dirichlet_points[i][0] - 1)

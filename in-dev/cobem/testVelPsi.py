@@ -12,8 +12,8 @@ cwd = os.getcwd()
 #     Reading Mesh
 # -------------------------------------------------------
 
-mesh_file = "poiseuille"
-# mesh_file = "fine"
+# mesh_file = "poiseuille"
+mesh_file = "fine"
 
 fluid_mesh = gm.GMesh("mesh/" + mesh_file + "-fld.msh")
 
