@@ -158,8 +158,8 @@ psi_last = sp.linalg.solve(K_psi, F_psi)
 
 
 # Calculo de vz e vr
-# vz = sp.multiply(MinvLump, sp.dot(Gy2, psi_a))
-# vr = -1.0 * sp.multiply(MinvLump, sp.dot(Gx2, psi_a))
+vz = sp.multiply(MinvLump, sp.dot(Gy2, psi_a))
+vr = -1.0 * sp.multiply(MinvLump, sp.dot(Gx2, psi_a))
 
 # Minv = sp.linalg.inv(M)
 # vz = sp.dot(Minv, sp.dot(Gy2, psi_a))

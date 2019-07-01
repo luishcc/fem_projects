@@ -29,8 +29,9 @@ num_ele = len(ien)
 
 
 omega = 0.5
+iterations = 1000
 time = (sp.pi*2) / omega
-dt = 0.001 * time
+dt = (1./iterations) * time
 
 
 ox = 2.0
@@ -61,7 +62,7 @@ for i in range(nodes):
 print "neighbour"
 neighbour = sl.neighbourElements(nodes, ien)
 
-for t in range(int(time*dt)):
+for t in range(iterations):
 
     print t, " / ", time
     zk_new = sl.Linear2D(nodes, neighbour, ien, x, y, vx, vy, dt, zk)

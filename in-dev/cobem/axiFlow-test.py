@@ -117,10 +117,12 @@ K_ni = K * viscosity_kin
 
 
 MLump = sp.zeros(nodes_fluid)
+MLump3 = sp.zeros(nodes_fluid)
 MinvLump = sp.zeros(nodes_fluid)
 for i in range(nodes_fluid):
     for j in range(nodes_fluid):
         MLump[i] += M[i, j]
+        MLump3[i] += M3[i, j]
     MinvLump[i] = 1. / MLump[i]
 
 
@@ -188,7 +190,7 @@ psi_a = sp.zeros(nodes_fluid)
 omega_a = sp.zeros(nodes_fluid)
 dpdx = -16
 for i in range(nodes_fluid):
-    vz_a[i] = -0.25  * dpdx * (1 - y_fluid[i]**2)
+    vz_a[i] = -0.25 * dpdx * (1 - y_fluid[i]**2)
     psi_a[i] = -0.25 * dpdx * (0.5 * y_fluid[i]**2 - 0.25 * y_fluid[i]**4)
     omega_a[i] = -0.5 * dpdx * y_fluid[i]
 
@@ -262,7 +264,7 @@ for t in range(0, time):
     # Solução de Wz e Psi
     Conv = vz * sp.diag(Gx) + vr * sp.diag(Gy)
 
-    LHS_Ni = Mdt + K_ni + sp.diag(Conv)
+    LHS_Ni = Mdt + K_ni + sp.diag(Conv) + MLump3*viscosity_kin
     LHS_omega = sp.copy(LHS_Ni)
 
     for i in range(len(Fluid_Boundary_in)):
