@@ -12,8 +12,8 @@ cwd = os.getcwd()
 #     Reading Mesh
 # -------------------------------------------------------
 
-# mesh_file = "poiseuille"
-mesh_file = "fine"
+mesh_file = "poiseuille"
+# mesh_file = "fine"
 
 fluid_mesh = gm.GMesh("mesh/" + mesh_file + "-fld.msh")
 
@@ -125,12 +125,14 @@ dirichlet_len_fluid = len(fluid_mesh.dirichlet_points)
 
 vz_a = sp.zeros(nodes_fluid)
 psi_a = sp.zeros(nodes_fluid)
+psi2 = sp.zeros(nodes_fluid)
 omega_a = sp.zeros(nodes_fluid)
 dpdx = -16
 for i in range(nodes_fluid):
     vz_a[i] = -0.25 * dpdx * (1 - y_fluid[i]**2)
     psi_a[i] = -0.25 * dpdx * (0.5 * y_fluid[i]**2 - 0.25 * y_fluid[i]**4)
     omega_a[i] = -0.5 * dpdx * y_fluid[i]
+    psi2[i] = psi_a[i] / (y_fluid[i]**2+0.001)
 
 
 # --------------------------------------
@@ -158,8 +160,12 @@ psi_last = sp.linalg.solve(K_psi, F_psi)
 
 
 # Calculo de vz e vr
-vz = sp.multiply(MinvLump, sp.dot(Gy2, psi_a))
+# vz = sp.multiply(MinvLump, sp.dot(Gy2, psi_a))
 vr = -1.0 * sp.multiply(MinvLump, sp.dot(Gx2, psi_a))
+
+vz = omega_a * y_fluid*0.5 - 0.5 * (sp.multiply(MinvLump, sp.dot(K, psi_a)))
+
+
 
 # Minv = sp.linalg.inv(M)
 # vz = sp.dot(Minv, sp.dot(Gy2, psi_a))
@@ -170,6 +176,6 @@ erro_psi = abs(psi_a - psi_last)
 
 # Salvar VTK
 vtk_t = IO.InOut(x_fluid, y_fluid, ien_fluid, nodes_fluid, num_ele_fluid, psi_last, erro, vz_a
-                 , psi_a, erro_psi, vz, vr)
+                 , psi_a, psi2, vz, vr)
 vtk_t.saveVTK(cwd+"/resultsTest", mesh_file + "Test")
 
