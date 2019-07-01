@@ -101,7 +101,7 @@ def fem_matrix(_x, _y, _numele, _numnode, _ien):
                 k_global[i_global, j_global] += k_local[i_local, j_local]
                 m_global[i_global, j_global] += m_local[i_local, j_local] * radius * (area/12.)
                 m2_global[i_global, j_global] += m_local[i_local, j_local] * radius**2 * (area/12.)
-                m3_global[i_global, j_global] += m_local[i_local, j_local] * (1./radius) * (area/12.)
+                m3_global[i_global, j_global] += m_local[i_local, j_local] * (1./radius**2) * (area/12.)
                 gx_global[i_global, j_global] += gx_local[i_local, j_local] * radius
                 gx2[i_global, j_global] += gx_local[i_local, j_local]
                 gy_global[i_global, j_global] += gy_local[i_local, j_local] * radius
