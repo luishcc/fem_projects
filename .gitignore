@@ -24,6 +24,8 @@ in-dev/semi-lagrangean/results/
 in-dev/semi-lagrangean/results/*
 in-dev/cobem/results/
 in-dev/cobem/results/*
+in-dev/cobem/resultsTest/
+in-dev/cobem/resultsTest/*
 
 in-dev/temp/results/*
 

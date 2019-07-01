@@ -63,6 +63,7 @@ def fem_matrix(_x, _y, _numele, _numnode, _ien):
     k_global = sp.zeros((_numnode, _numnode), dtype="float64")
     m_global = sp.zeros((_numnode, _numnode), dtype="float64")
     m2_global = sp.zeros((_numnode, _numnode), dtype="float64")
+    m3_global = sp.zeros((_numnode, _numnode), dtype="float64")
     gx_global = sp.zeros((_numnode, _numnode), dtype="float64")
     gx2 = sp.zeros((_numnode, _numnode), dtype="float64")
     gy2 = sp.zeros((_numnode, _numnode), dtype="float64")
@@ -100,29 +101,20 @@ def fem_matrix(_x, _y, _numele, _numnode, _ien):
                 k_global[i_global, j_global] += k_local[i_local, j_local]
                 m_global[i_global, j_global] += m_local[i_local, j_local] * radius * (area/12.)
                 m2_global[i_global, j_global] += m_local[i_local, j_local] * radius**2 * (area/12.)
+                m3_global[i_global, j_global] += m_local[i_local, j_local] * (1./radius) * (area/12.)
                 gx_global[i_global, j_global] += gx_local[i_local, j_local] * radius
                 gx2[i_global, j_global] += gx_local[i_local, j_local]
                 gy_global[i_global, j_global] += gy_local[i_local, j_local] * radius
                 gy2[i_global, j_global] += gy_local[i_local, j_local]
 
-    return k_global, m_global, gx_global, gy_global, m2_global, gx2, gy2
+    return k_global, m_global, gx_global, gy_global, m2_global, gx2, gy2, m3_global
 
 
-K, M, Gx, Gy, M2, Gx2, Gy2 = fem_matrix(x_fluid, y_fluid, num_ele_fluid, nodes_fluid, ien_fluid)
+K, M, Gx, Gy, M2, Gx2, Gy2, M3 = fem_matrix(x_fluid, y_fluid, num_ele_fluid, nodes_fluid, ien_fluid)
 
 Mdt = M/dt
 K_ni = K * viscosity_kin
 
-
-"""
--------------------------------------
--------------------------------------
-
-From flow encit.py
-
--------------------------------------
--------------------------------------
-"""
 
 MLump = sp.zeros(nodes_fluid)
 MinvLump = sp.zeros(nodes_fluid)
