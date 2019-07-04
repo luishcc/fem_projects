@@ -180,6 +180,8 @@ class Linear:
                          *jacobian*_self.gqWeights[k];
      _self.kyy[i][j]  += localy[k]*dphiJdy[k][i]*dphiJdy[k][j]\
                          *jacobian*_self.gqWeights[k];
+     _self.kyy[i][j]  += localy[k]*dphiJdy[k][i]*dphiJdy[k][j]\
+                         *jacobian*_self.gqWeights[k];
      _self.kzz[i][j]  += localy[k]*dphiJdy[k][i]*dphiJdy[k][j]\
                          *jacobian*_self.gqWeights[k] + \
                          localy[k]*dphiJdy[k][i]*dphiJdy[k][j]\
