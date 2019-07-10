@@ -76,7 +76,7 @@ vy_h = sp.zeros(nodes_fldH, dtype="float64")
 vx_total = sp.zeros(nodes_total, dtype="float64")
 vy_total = sp.zeros(nodes_total, dtype="float64")
 
-Temp_old = sp.ones(nodes_total, dtype="float64")*650
+Temp_old = sp.ones(nodes_total, dtype="float64")*20
 for i in range(len(malha_total.dirichlet_points)):
     index = int(malha_total.dirichlet_points[i][0]-1)
     value = malha_total.dirichlet_points[i][1]
@@ -254,8 +254,9 @@ for t in range(0, tempo):
         vy_total[i] = 0.0
         vx_total[i] = 0.0
         if Vel_points_convertH[i] >= 0:
-            vx_total[i] = vx_h[int(Vel_points_convertH[i])]
-            vy_total[i] = vy_h[int(Vel_points_convertH[i])]
+            index = int(Vel_points_convertH[i])
+            vx_total[i] = vx_h[index]
+            vy_total[i] = vy_h[index]
 
     # B.C. Vorticidade
     Wcc_h = sp.dot(MinvLump_h, (sp.dot(Gx_fld_h, vy_h) - sp.dot(Gy_fld_h, vx_h)))
