@@ -224,7 +224,7 @@ for i in Fluid_Boundary_h:
 
 # --------------------------------------
 
-Wz_old_h = sp.dot(MinvLump_h, (sp.dot(Gx_fld_h, vy_h) - sp.dot(Gy_fld_h, vx_h)))
+Wz_old_h = sp.dot(MinvLump_h, (sp.dot(vy_h, Gx_fld_h) - sp.dot(vx_h, Gy_fld_h)))
 
 F_psi_h = sp.dot(M_fld_h, Wz_old_h) + ccpsi_h
 for i in range(dirichlet_len_fluid_h):

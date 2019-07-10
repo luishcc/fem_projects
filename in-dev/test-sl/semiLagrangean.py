@@ -132,7 +132,7 @@ def Linear2D(_npoints, _neighbors_elements, _IEN, _xn, _yn, _vx, _vy, _dt, _scal
     xd = _xn - _vx * _dt
     yd = _yn - _vy * _dt
 
-    scalar = sp.zeros([_npoints, 1], dtype=float)
+    scalar = sp.zeros(_npoints, dtype=float)
 
     for i in range(0, _npoints):
         x = float(xd[i])
