@@ -26,6 +26,8 @@ in-dev/cobem/results/
 in-dev/cobem/results/*
 in-dev/cobem/resultsTest/
 in-dev/cobem/resultsTest/*
+in-dev/test-sl/results/
+in-dev/test-sl/results/*
 
 in-dev/temp/results/*
 
