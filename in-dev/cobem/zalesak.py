@@ -12,7 +12,7 @@ cwd = os.getcwd()
 #     Reading Mesh
 # -------------------------------------------------------
 
-mesh_file = "zalesak-coarse"
+mesh_file = "zalesak"
 
 fluid_mesh = gm.GMesh("mesh/" + mesh_file + ".msh")
 
@@ -70,7 +70,7 @@ for t in range(iterations):
     # Salvar VTK
     vtk_t = IO.InOut(x, y, ien, nodes, num_ele, zk, None, None
                      , None, None, vx, vy)
-    vtk_t.saveVTK(cwd+"/resultsTest", mesh_file + str(t))
+    vtk_t.saveVTK(cwd+"/results", mesh_file + str(t))
 
     zk = sp.copy(zk_new)
 

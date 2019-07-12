@@ -171,8 +171,8 @@ for i in range(nodes_fluid):
 # --------------------------------------
 # Psi K matrix with Dirichlet BC -- K_psi
 
-K_psi = K + 2 * Gy2
-# K_psi = K + 3 * Gy2 + Gy
+# K_psi = K + 2 * Gy2
+K_psi = K + 3 * Gy2 + Gy
 
 ccpsi = sp.zeros(nodes_fluid)
 for i in range(dirichlet_len_fluid):
@@ -218,18 +218,18 @@ psi_last = sp.linalg.solve(K_psi, F_psi)
 for t in range(0, time):
     print "Solving System " + str((float(t)/time)*100) + "%"
 
-    # vr = sp.zeros(nodes_fluid)
-    # vz = vz_a
-
-    for i in range(num_omega):
-        index = int(Fluid_Boundary[i])
-        vr[index] = 0
-        if y_fluid[index] == 1:
-            vz[index] = 0.
-            vr[index] = 0.
-        if x_fluid[index] == 0:
-            vz[index] = 1.
-            vz[index] = vz_a[index]
+    vr = sp.zeros(nodes_fluid)
+    vz = vz_a
+    #
+    # for i in range(num_omega):
+    #     index = int(Fluid_Boundary[i])
+    #     vr[index] = 0
+    #     if y_fluid[index] == 1:
+    #         vz[index] = 0.
+    #         vr[index] = 0.
+    #     if x_fluid[index] == 0:
+    #         vz[index] = 1.
+    #         vz[index] = vz_a[index]
         # if y_fluid[index] == 0:
         #     vz[index] = 4.
 
@@ -243,7 +243,7 @@ for t in range(0, time):
     Conv = vz * sp.diag(Gx) + vr * sp.diag(Gy)
     # Conv = vz * sp.diag(Gx)
 
-    LHS_Ni = Mdt + K_ni + sp.diag(Conv) + M3 * viscosity_kin + Gy2
+    LHS_Ni = Mdt + K_ni + sp.diag(Conv) + M3 * viscosity_kin + Gy2 + 2*Gx2
     LHS_omega = sp.copy(LHS_Ni)
 
     for i in range(len(Fluid_Boundary_in)):
@@ -304,17 +304,17 @@ for t in range(0, time):
 
     # Salvar VTK
     vtk_t = IO.InOut(x_fluid, y_fluid, ien_fluid, nodes_fluid, num_ele_fluid, psi, omega, vz_a
-                     , psi_a, omega_a, vz, vr)
-    vtk_t.saveVTK(cwd+"/resultsTest", mesh_file + str(t+1))
+                     , (psi_a-psi), omega_a-omega, vz, vr)
+    vtk_t.saveVTK(cwd+"/results", mesh_file + str(t+1))
 
     Psi_old = sp.copy(psi)
     omega_last = sp.copy(omega)
 
     # Calculo de vz e vr
 
-    vz = sp.multiply(MinvLump, sp.dot(Gy2, psi))
+    # vz = sp.multiply(MinvLump, sp.dot(Gy2, psi))
     # vz = sp.multiply(MinvLump, sp.dot(Gy2, psi_a))
-    vr = -1.0 * sp.multiply(MinvLump, sp.dot(Gx2, psi))
+    # vr = -1.0 * sp.multiply(MinvLump, sp.dot(Gx2, psi))
 
 
 # ----------------- Fim de Loop -------------------
