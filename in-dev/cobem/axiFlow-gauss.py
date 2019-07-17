@@ -91,7 +91,6 @@ K, M, M2, M3, Gx, Gy, Gx2, Gy2 = fem_matrix(x_fluid, y_fluid, num_ele_fluid, nod
 Mdt = M/dt
 K_ni = K * viscosity_kin
 
-
 MLump = sp.zeros(nodes_fluid)
 MinvLump = sp.zeros(nodes_fluid)
 for i in range(nodes_fluid):
