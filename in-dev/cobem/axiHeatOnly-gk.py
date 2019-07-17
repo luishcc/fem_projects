@@ -15,8 +15,9 @@ cwd = os.getcwd()
 #     Reading Mesh
 # -------------------------------------------------------
 
-#mesh_file = "tube"
+# mesh_file = "tube"
 mesh_file = "tube-coarse"
+# mesh_file = "tube-coarse-dz"
 
 global_mesh = gm.GMesh("mesh/" + mesh_file + ".msh")
 
@@ -33,7 +34,7 @@ axisym_tri = ele.Linear(x_global, y_global)
 #     Simulation Parameters
 # -------------------------------------------------------
 
-dt = 0.01
+dt = 0.05
 dt_inv = 1. / dt
 time = 1000
 
@@ -44,6 +45,7 @@ viscostity_kin = viscostity_din / rho_fluid
 termCondutivity_fluid = 0.6089
 spHeat_fluid = 4137.9
 termDiffusivity_fluid = termCondutivity_fluid / (rho_fluid * spHeat_fluid)
+termDiffusivity_fluid = 1
 
 # -------------------------------------------------------
 #     Initial Condition
@@ -94,35 +96,45 @@ def fem_matrix(_x, _y, _numele, _numnode, _ien):
 
 K, M, M2, M3, Gx, Gy, Gx2, Gy2 = fem_matrix(x_global, y_global, num_ele_global, nodes_global, ien_global)
 
+Mdt = M / dt
 
 # ---------------------------------------
 # Boundary and Initial Condition
 # ---------------------------------------
 
+
+
 dirichlet_len = len(global_mesh.dirichlet_points)
 
+vzz = 1
+beta = vzz/termDiffusivity_fluid
+exp5 = sp.exp(beta*5)
 vz_a = sp.zeros(nodes_global)
 temp_a = sp.zeros(nodes_global)
 dpdx = -2
 for i in range(nodes_global):
     vz_a[i] = -0.25 * dpdx * (1 - y_global[i]**2)
     temp_a[i] = 1
+    # temp_a[i] = (sp.exp(beta*x_global[i]) - exp5) / (1-exp5)
+
+vz = vz_a
+# vz = sp.ones(nodes_global)*vzz
 
 
 # --------------------------------------
 # LHS matrix with Dirichlet BC
 
 
-vz = vz_a
-conv = vz * sp.diag(Gx) # + vr * sp.diag(Gy)
-LHS = M * (1./dt) + K * termDiffusivity_fluid + sp.diag(conv)  \
-      + M3 * termDiffusivity_fluid + Gy2 + 2*Gx2
+conv = vz * sp.diag(Gx) + vr * sp.diag(Gy)
+LHS = Mdt + K * termDiffusivity_fluid + sp.diag(conv) - Gy2 * termDiffusivity_fluid \
+      + Gx2 * termDiffusivity_fluid
 LHS_og = sp.copy(LHS)
 
 cct = sp.zeros(nodes_global)
 for i in range(dirichlet_len):
     index = int(global_mesh.dirichlet_points[i][0] - 1)
     value = global_mesh.dirichlet_points[i][1]
+    temp_old[index] = value
     for j in range(nodes_global):
         cct[j] -= value * LHS_og[j, index]
         if j != index:
@@ -137,7 +149,7 @@ for i in range(dirichlet_len):
 for t in range(0, time):
     print "Solving System " + str((float(t)/time)*100) + "%"
 
-    RHS = sp.dot(M, temp_old) + cct
+    RHS = sp.dot(Mdt, temp_old) + cct
     for i in range(dirichlet_len):
         index = int(global_mesh.dirichlet_points[i][0]-1)
         RHS[index] = global_mesh.dirichlet_points[i][1]
@@ -146,7 +158,7 @@ for t in range(0, time):
 
     # Salvar VTK
     vtk_t = IO.InOut(x_global, y_global, ien_global, nodes_global, num_ele_global, temp_old, None, vz_a
-                     , temp_a, None, vz, vr)
+                     , temp_a, temp_a-temp, vz, vr)
     vtk_t.saveVTK(cwd+"/results", mesh_file + str(t+1))
 
     temp_old = sp.copy(temp)
