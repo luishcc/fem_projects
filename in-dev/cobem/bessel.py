@@ -24,13 +24,13 @@ num_ele_fluid = len(ien_fluid)
 
 temp = sp.zeros(nodes_fluid)
 
-maxsum = 100000
+maxsum = 1000
 for i in range(nodes_fluid):
 	print i, " / ", nodes_fluid
 	z = x_fluid[i]
 	r = y_fluid[i]
-	i0 = sp.special.iv(2, 1)
-	ir =  sp.special.iv(2, r)
+	i0 = sp.special.iv(0, 1)
+	ir =  sp.special.iv(0, r)
 	for n in range(1,maxsum):
 		ln = n*(sp.pi/5.)	
 		c1 = (2./ln) * (sp.sin(2.5*ln))**2
