@@ -4,6 +4,7 @@ import InOut as IO
 import scipy as sp
 from scipy import linalg
 import matplotlib.pyplot as plt
+import Elements as ele
 import os
 
 cwd = os.getcwd()
@@ -16,16 +17,17 @@ cwd = os.getcwd()
 # mesh_file = "fine"
 mesh_file = "poi-var"
 
+savename = mesh_file + "-test"
 
 fluid_mesh = gm.GMesh("mesh/" + mesh_file + "-fld.msh")
 
 x_fluid = fluid_mesh.X
-y_fluid = (fluid_mesh.Y + 0.05) / 1.05
-# y_fluid = fluid_mesh.Y
+y_fluid = fluid_mesh.Y
 ien_fluid = fluid_mesh.IEN
 nodes_fluid = len(x_fluid)
 num_ele_fluid = len(ien_fluid)
 
+axisym_tri = ele.Linear(x_fluid, y_fluid)
 
 # -------------------------------------------------------
 #     Simulation Parameters
@@ -51,73 +53,46 @@ vr = sp.zeros(nodes_fluid)
 
 
 def fem_matrix(_x, _y, _numele, _numnode, _ien):
-    k_local = sp.zeros((3, 3), dtype="float64")
-    m_local = sp.array([[2, 1, 1], [1, 2, 1], [1, 1, 2]], dtype="float64")
-    gx_local = sp.zeros((3, 3), dtype="float64")
-    gy_local = sp.zeros((3, 3), dtype="float64")
-    a = sp.zeros(3, dtype="float64")
-    b = sp.zeros(3, dtype="float64")
-    c = sp.zeros(3, dtype="float64")
-    yy = sp.zeros(3, dtype="float64")
-    xx = sp.zeros(3, dtype="float64")
     k_global = sp.zeros((_numnode, _numnode), dtype="float64")
+    mr_global = sp.zeros((_numnode, _numnode), dtype="float64")
     m_global = sp.zeros((_numnode, _numnode), dtype="float64")
-    m2_global = sp.zeros((_numnode, _numnode), dtype="float64")
-    m3_global = sp.zeros((_numnode, _numnode), dtype="float64")
-    gx_global = sp.zeros((_numnode, _numnode), dtype="float64")
-    gx2 = sp.zeros((_numnode, _numnode), dtype="float64")
-    gy2 = sp.zeros((_numnode, _numnode), dtype="float64")
-    gy_global = sp.zeros((_numnode, _numnode), dtype="float64")
+    gxr_global = sp.zeros((_numnode, _numnode), dtype="float64")
+    gx = sp.zeros((_numnode, _numnode), dtype="float64")
+    gy = sp.zeros((_numnode, _numnode), dtype="float64")
+    gyr_global = sp.zeros((_numnode, _numnode), dtype="float64")
 
     for elem in range(_numele):
-        for i in range(3):
-            xx[i] = _x[_ien[elem, i]]
-            yy[i] = _y[_ien[elem, i]]
 
-        a[0] = xx[0] * yy[1] - xx[1] * yy[0]        # Change with a[2]?
-        a[1] = xx[2] * yy[0] - xx[0] * yy[2]
-        a[2] = xx[1] * yy[2] - xx[2] * yy[1]
-        area = (a[0] + a[1] + a[2]) / 2.
+        v = [_ien[elem, 0], _ien[elem, 1], _ien[elem, 2]]
+        axisym_tri.getAxiSym(v)
 
-        radius = (1./3.) * (yy[0] + yy[1] + yy[2])
-
-        b[0] = yy[1] - yy[2]
-        b[1] = yy[2] - yy[0]
-        b[2] = yy[0] - yy[1]
-        c[0] = xx[2] - xx[1]
-        c[1] = xx[0] - xx[2]
-        c[2] = xx[1] - xx[0]
-
-        for i in range(3):
-            for j in range(3):
-                k_local[i, j] = (b[i] * b[j] + c[i] * c[j]) * 0.25 * radius * (1./ area)
-                gx_local[i, j] = b[j] * (1/6.)
-                gy_local[i, j] = c[j] * (1/6.)
+        ele_radius = (_y[v[0]] + _y[v[1]] + _y[v[2]])/3.
 
         for i_local in range(3):
             i_global = _ien[elem, i_local]
             for j_local in range(3):
                 j_global = _ien[elem, j_local]
-                k_global[i_global, j_global] += k_local[i_local, j_local]
-                m_global[i_global, j_global] += m_local[i_local, j_local] * radius * (area/12.)
-                m2_global[i_global, j_global] += m_local[i_local, j_local] * radius**2 * (area/12.)
-                m3_global[i_global, j_global] += m_local[i_local, j_local] * (1./radius) * (area/12.)
-                gx_global[i_global, j_global] += gx_local[i_local, j_local] * radius
-                gx2[i_global, j_global] += gx_local[i_local, j_local]
-                gy_global[i_global, j_global] += gy_local[i_local, j_local] * radius
-                gy2[i_global, j_global] += gy_local[i_local, j_local]
 
-    return k_global, m_global, gx_global, gy_global, m2_global, gx2, gy2, m3_global
+                k_global[i_global, j_global]     += ele_radius*axisym_tri.kxx[i_local, j_local]+\
+                                                    ele_radius*axisym_tri.kyy[i_local, j_local]+\
+                                                    axisym_tri.gy[i_local, j_local]
+                mr_global[i_global, j_global]     += ele_radius*axisym_tri.mass[i_local, j_local]
+                m_global[i_global, j_global]      += axisym_tri.mass[i_local, j_local]
+                gxr_global[i_global, j_global]    += ele_radius*axisym_tri.gx[i_local, j_local]
+                gx[i_global, j_global]            += axisym_tri.gx[i_local, j_local]
+                gyr_global[i_global, j_global]    += ele_radius*axisym_tri.gy[i_local, j_local]
+                gy[i_global, j_global]            += axisym_tri.gy[i_local, j_local]
 
+    return k_global, m_global, mr_global, gxr_global, gyr_global, gx, gy
 
-K, M, Gx, Gy, M2, Gx2, Gy2, M3 = fem_matrix(x_fluid, y_fluid, num_ele_fluid, nodes_fluid, ien_fluid)
+K, M, Mr, Gxr, Gyr, Gx, Gy = fem_matrix(x_fluid, y_fluid, num_ele_fluid, nodes_fluid, ien_fluid)
 
 
 MLump = sp.zeros(nodes_fluid)
 MinvLump = sp.zeros(nodes_fluid)
 for i in range(nodes_fluid):
     for j in range(nodes_fluid):
-        MLump[i] += M[i, j]
+        MLump[i] += Mr[i, j]
     MinvLump[i] = 1. / MLump[i]
 
 # ---------------------------------------
@@ -140,7 +115,7 @@ for i in range(nodes_fluid):
 # --------------------------------------
 # Psi K matrix with Dirichlet BC -- K_psi
 
-K_psi = K + 2 * Gy2
+K_psi = K + 2 * Gy
 ccpsi = sp.zeros(nodes_fluid)
 for i in range(dirichlet_len_fluid):
     index = int(fluid_mesh.dirichlet_points[i][0] - 1)
@@ -153,7 +128,7 @@ for i in range(dirichlet_len_fluid):
         else:
             K_psi[index, j] = 1
 
-F_psi = sp.dot(M2, omega_a) + ccpsi
+F_psi = sp.dot(Mr, omega_a) + ccpsi
 for i in range(dirichlet_len_fluid):
     index = int(fluid_mesh.dirichlet_points[i][0] - 1)
     F_psi[index] = fluid_mesh.dirichlet_points[i][1]
@@ -161,11 +136,11 @@ for i in range(dirichlet_len_fluid):
 psi_last = sp.linalg.solve(K_psi, F_psi)
 
 # Calculo de vz e vr
-# vz = sp.multiply(MinvLump, sp.dot(Gy2, psi_a))
-# vr = -1.0 * sp.multiply(MinvLump, sp.dot(Gx2, psi_a))
+vz = sp.multiply(MinvLump, sp.dot(Gy, psi_a))
+vr = -1.0 * sp.multiply(MinvLump, sp.dot(Gx, psi_a))
 
-vz = sp.multiply(MinvLump, sp.dot(Gy2, psi_last))
-vr = -1.0 * sp.multiply(MinvLump, sp.dot(Gx2, psi_last))
+# vz = sp.multiply(MinvLump, sp.dot(Gy2, psi_last))
+# vr = -1.0 * sp.multiply(MinvLump, sp.dot(Gx2, psi_last))
 
 for i in range(nodes_fluid):
     if y_fluid[i] == max(y_fluid):
@@ -181,5 +156,5 @@ erro_psi = abs(psi_a - psi_last)
 # Salvar VTK
 vtk_t = IO.InOut(x_fluid, y_fluid, ien_fluid, nodes_fluid, num_ele_fluid, psi_last, omega, vz_a
                  , psi_a, omega_a, vz, vr)
-vtk_t.saveVTK(cwd+"/resultsTest", mesh_file + "Test")
+vtk_t.saveVTK(cwd+"/resultsTest", savename + "Test")
 

@@ -156,49 +156,30 @@ class Linear:
                   *dxdl1[k] )/jacobian;
 
   _self.mass = np.zeros((_self.NUMGLEC,_self.NUMGLEC), dtype=np.float)
-  _self.mass2 = np.zeros((_self.NUMGLEC,_self.NUMGLEC), dtype=np.float)
-  _self.mass3 = np.zeros((_self.NUMGLEC,_self.NUMGLEC), dtype=np.float)
   _self.kxx  = np.zeros((_self.NUMGLEC,_self.NUMGLEC), dtype=np.float)
   _self.kyy  = np.zeros((_self.NUMGLEC,_self.NUMGLEC), dtype=np.float)
-  _self.kzz  = np.zeros((_self.NUMGLEC,_self.NUMGLEC), dtype=np.float)
   _self.gx   = np.zeros((_self.NUMGLEC,_self.NUMGLEC), dtype=np.float)
   _self.gy   = np.zeros((_self.NUMGLEC,_self.NUMGLEC), dtype=np.float)
-  _self.gxm  = np.zeros((_self.NUMGLEC,_self.NUMGLEC), dtype=np.float)
-  _self.gym  = np.zeros((_self.NUMGLEC,_self.NUMGLEC), dtype=np.float)
   _self.dx   = np.zeros((_self.NUMGLEC,_self.NUMGLEC), dtype=np.float)
   _self.dy   = np.zeros((_self.NUMGLEC,_self.NUMGLEC), dtype=np.float)
   for k in range(0,_self.NUMRULE): 
    for i in range(0,_self.NUMGLEC):
     for j in range(0,_self.NUMGLEC):
-     _self.mass[i][j] += localy[k]*_self.phiJ[k][i]*_self.phiJ[k][j]\
+     _self.mass[i][j] += _self.phiJ[k][i]*_self.phiJ[k][j]\
                          *jacobian*_self.gqWeights[k];
-     _self.mass2[i][j] += localy[k]*localy[k]*_self.phiJ[k][i]*_self.phiJ[k][j]\
+     _self.kxx[i][j]  += dphiJdx[k][i]*dphiJdx[k][j]\
                          *jacobian*_self.gqWeights[k];
-     _self.mass3[i][j] += (1./localy[k])*_self.phiJ[k][i]*_self.phiJ[k][j]\
+     _self.kyy[i][j]  += dphiJdy[k][i]*dphiJdy[k][j]\
                          *jacobian*_self.gqWeights[k];
-     _self.kxx[i][j]  += localy[k]*dphiJdx[k][i]*dphiJdx[k][j]\
+     _self.kyy[i][j]  += dphiJdy[k][i]*dphiJdy[k][j]\
                          *jacobian*_self.gqWeights[k];
-     _self.kyy[i][j]  += localy[k]*dphiJdy[k][i]*dphiJdy[k][j]\
+     _self.gx[i][j]   += _self.gqPoints[k][i]*dphiJdx[k][j]\
                          *jacobian*_self.gqWeights[k];
-     _self.kyy[i][j]  += localy[k]*dphiJdy[k][i]*dphiJdy[k][j]\
+     _self.gy[i][j]   += _self.gqPoints[k][i]*dphiJdy[k][j]\
                          *jacobian*_self.gqWeights[k];
-     _self.kzz[i][j]  += localy[k]*dphiJdy[k][i]*dphiJdy[k][j]\
-                         *jacobian*_self.gqWeights[k] + \
-                         localy[k]*dphiJdy[k][i]*dphiJdy[k][j]\
-                         *jacobian*_self.gqWeights[k] + \
-                         2.0*_self.gqPoints[k][i]*dphiJdy[k][j]\
+     _self.dx[j][i]   += _self.gqPoints[k][j]*dphiJdx[k][i]\
                          *jacobian*_self.gqWeights[k];
-     _self.gx[i][j]   += localy[k]*_self.gqPoints[k][i]*dphiJdx[k][j]\
-                         *jacobian*_self.gqWeights[k];
-     _self.gy[i][j]   += localy[k]*_self.gqPoints[k][i]*dphiJdy[k][j]\
-                         *jacobian*_self.gqWeights[k];
-     _self.gxm[i][j]   += _self.gqPoints[k][i]*dphiJdx[k][j]\
-                         *jacobian*_self.gqWeights[k];
-     _self.gym[i][j]   += _self.gqPoints[k][i]*dphiJdy[k][j]\
-                         *jacobian*_self.gqWeights[k];
-     _self.dx[j][i]   += -localy[k]*_self.gqPoints[k][j]*dphiJdx[k][i]\
-                         *jacobian*_self.gqWeights[k];
-     _self.dy[j][i]   += -localy[k]*_self.gqPoints[k][j]*dphiJdy[k][i]\
+     _self.dy[j][i]   += _self.gqPoints[k][j]*dphiJdy[k][i]\
                          *jacobian*_self.gqWeights[k];
 
 

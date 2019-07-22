@@ -55,7 +55,7 @@ vr = sp.zeros(nodes_fluid)
 
 
 def fem_matrix(_x, _y, _numele, _numnode, _ien):
-    kr_global = sp.zeros((_numnode, _numnode), dtype="float64")
+    k_global = sp.zeros((_numnode, _numnode), dtype="float64")
     mr_global = sp.zeros((_numnode, _numnode), dtype="float64")
     mr2_global = sp.zeros((_numnode, _numnode), dtype="float64")
     mr_inv_global = sp.zeros((_numnode, _numnode), dtype="float64")
@@ -69,19 +69,24 @@ def fem_matrix(_x, _y, _numele, _numnode, _ien):
         v = [_ien[elem, 0], _ien[elem, 1], _ien[elem, 2]]
         axisym_tri.getAxiSym(v)
 
+        ele_radius = (_y[v[0]] + _y[v[1]] + _y[v[2]])/3.
+
         for i_local in range(3):
             i_global = _ien[elem, i_local]
             for j_local in range(3):
                 j_global = _ien[elem, j_local]
-                kr_global[i_global, j_global] += axisym_tri.kxx[i_local, j_local] \
-                                                 + axisym_tri.kyy[i_local, j_local]
-                mr_global[i_global, j_global] += axisym_tri.mass[i_local, j_local]
-                mr2_global[i_global, j_global] += axisym_tri.mass2[i_local, j_local]
-                mr_inv_global[i_global, j_global] += axisym_tri.mass3[i_local, j_local]
-                gxr_global[i_global, j_global] += axisym_tri.gx[i_local, j_local]
-                gx[i_global, j_global] += axisym_tri.gxm[i_local, j_local]
-                gyr_global[i_global, j_global] += axisym_tri.gy[i_local, j_local]
-                gy[i_global, j_global] += axisym_tri.gym[i_local, j_local]
+
+                k_global[i_global, j_global]     += ele_radius*axisym_tri.kxx[i_local, j_local]+\
+                                                    ele_radius*axisym_tri.kyy[i_local, j_local]+\
+                                                    axisym_tri.gy[i_local, j_local]
+                mr_global[i_global, j_global]     += ele_radius*axisym_tri.mass[i_local, j_local]
+                mr2_global[i_global, j_global]    += (ele_radius**2)*axisym_tri.mass[i_local, j_local]
+                mrinv_global[i_global, j_global]  += (1./ele_radius)*axisym_tri.mass[i_local, j_local]
+                gxr_global[i_global, j_global]    += ele_radius*axisym_tri.gx[i_local, j_local]
+                gx[i_global, j_global]            += axisym_tri.gx[i_local, j_local]
+                gyr_global[i_global, j_global]    += ele_radius*axisym_tri.gy[i_local, j_local]
+                gy[i_global, j_global]            += axisym_tri.gy[i_local, j_local]
+
 
     return kr_global, mr_global, mr2_global, mr_inv_global, gxr_global, gyr_global, gx, gy
 
