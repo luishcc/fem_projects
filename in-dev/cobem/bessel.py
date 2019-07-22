@@ -14,21 +14,21 @@ cwd = os.getcwd()
 
 mesh_file = "poiseuille"
 savename = "bessel"
-fluid_mesh = gm.GMesh("mesh/" + mesh_file + "-fld.msh")
+mesh = gm.GMesh("mesh/" + mesh_file + "-fld.msh")
 
-x_fluid = fluid_mesh.X
-y_fluid = fluid_mesh.Y
-ien_fluid = fluid_mesh.IEN
-nodes_fluid = len(x_fluid)
-num_ele_fluid = len(ien_fluid)
+x = mesh.X
+y = mesh.Y
+ien = mesh.IEN
+nodes = len(r)
+num_ele = len(ien)
 
-temp = sp.zeros(nodes_fluid)
+temp = sp.zeros(nodes)
 
 maxsum = 1000
-for i in range(nodes_fluid):
-	print i, " / ", nodes_fluid
-	z = x_fluid[i]
-	r = y_fluid[i]
+for i in range(nodes):
+	print i, " / ", nodes
+	z = x[i]
+	r = y[i]
 	i0 = sp.special.iv(0, 1)
 	ir =  sp.special.iv(0, r)
 	for n in range(1,maxsum):
