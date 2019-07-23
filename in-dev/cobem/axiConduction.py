@@ -37,7 +37,7 @@ axisym_tri = ele.Linear(x_global, y_global)
 #     Simulation Parameters
 # -------------------------------------------------------
 
-dt = 0.05
+dt = 0.01
 dt_inv = 1. / dt
 time = 1000
 
@@ -127,6 +127,26 @@ for i in range(dirichlet_len):
         else:
             LHS[index, j] = 1
 
+
+temp_ana = sp.zeros(nodes_global)
+
+from scipy import special
+
+maxsum = 1000
+for i in range(nodes_global):
+    z = x_global[i]
+    r = y_global[i]
+    for n in range(1,maxsum):
+        ln = n*(sp.pi/5.)
+        i0 = sp.special.iv(0, ln)
+        ir = sp.special.iv(0, r*ln)
+        c1 = (2./ln) * (sp.sin(2.5*ln))**2
+        c2 = 2.5 - sp.sin(10*ln)/(4*ln)
+        cn = c1 / (i0 * c2)
+        temp_ana[i] += cn * ir * sp.sin(z*ln)
+
+
+
 # ----------------------------------------------------------
 # ---------------------- Loop No Tempo ------------------------
 
@@ -142,7 +162,7 @@ for t in range(0, time):
 
     # Salvar VTK
     vtk_t = IO.InOut(x_global, y_global, ien_global, nodes_global, num_ele_global, temp_old, None, None
-                     , temp_a, temp_a-temp, None, None)
+                     , temp_ana, abs(temp_ana-temp), None, None)
     vtk_t.saveVTK(cwd+"/results", savename + str(t+1))
 
     temp_old = sp.copy(temp)

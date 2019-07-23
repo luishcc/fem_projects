@@ -101,13 +101,17 @@ def fem_matrix(_x, _y, _numele, _numnode, _ien):
                 k_global[i_global, j_global]     += ele_radius*axisym_tri.kxx[i_local, j_local]+\
                                                     ele_radius*axisym_tri.kyy[i_local, j_local]+\
                                                     axisym_tri.gy[i_local, j_local]
+
                 k2_global[i_global, j_global] += ele_radius * axisym_tri.kxx[i_local, j_local] + \
-                                                ele_radius * axisym_tri.kyy[i_local, j_local] + \
-                                                axisym_tri.gy[i_local, j_local] + \
-                                                2*axisym_tri.gy[i_local, j_local]
-                kpsi_global[i_global, j_global]  += ele_radius * axisym_tri.kxx[i_local, j_local]+\
-                                                    ele_radius * axisym_tri.kyy[i_local, j_local]-\
-                                                    axisym_tri.gy[i_local, j_local]
+                                                 ele_radius * axisym_tri.kyy[i_local, j_local] + \
+                                                 axisym_tri.gy[i_local, j_local] + \
+                                                 2.*axisym_tri.gy[i_local, j_local]
+
+                #k2_global[i_global, j_global] += axisym_tri.kxx[i_local, j_local] + \
+                 #                                axisym_tri.kyy[i_local, j_local]+ \
+                  #                              2*axisym_tri.gy[i_local, j_local]/ele_radius
+
+
                 mr_global[i_global, j_global]    += ele_radius*axisym_tri.mass[i_local, j_local]
                 #mr_global[i_global, j_global]    += axisym_tri.mr[i_local, j_local]
                 #mr_global[i_global, j_global]    += ele_radius*m_local[i_local, j_local]*(area/6.)
@@ -119,10 +123,10 @@ def fem_matrix(_x, _y, _numele, _numnode, _ien):
                 gyr_global[i_global, j_global]   += ele_radius*axisym_tri.gy[i_local, j_local]
                 gy[i_global, j_global]           += axisym_tri.gy[i_local, j_local]
 
-    return k2_global, m_global, mr_global, gxr_global, gyr_global, gx, gy, kpsi_global, mr2_global
+    return k2_global, m_global, mr_global, gxr_global, gyr_global, gx, gy, mr2_global
 
 print "Matrix Assembly"
-K, M, Mr, Gxr, Gyr, Gx, Gy, Kp, Mr2 = fem_matrix(x_fluid, y_fluid, num_ele_fluid, nodes_fluid, ien_fluid)
+K, M, Mr, Gxr, Gyr, Gx, Gy, Mr2 = fem_matrix(x_fluid, y_fluid, num_ele_fluid, nodes_fluid, ien_fluid)
 
 print "Lumped Mass"
 MLump = sp.zeros(nodes_fluid)
@@ -162,7 +166,7 @@ for i in range(dirichlet_len_fluid):
     index = int(fluid_mesh.dirichlet_points[i][0] - 1)
     value = fluid_mesh.dirichlet_points[i][1]
     for j in range(nodes_fluid):
-        ccpsi[j] -= value * Kp[j, index]
+        ccpsi[j] -= value * K[j, index]
         if j != index:
             K_psi[index, j] = 0
             K_psi[j, index] = 0
