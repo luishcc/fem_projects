@@ -145,6 +145,7 @@ class Linear:
    dxdl2[k] = valxl2
    dydl1[k] = valyl1
    dydl2[k] = valyl2
+   #jacobian[k] = dxdl1[k] * dydl2[k] - dydl1[k] * dxdl2[k]
 
   dphiJdx = np.zeros((_self.NUMRULE,_self.NUMGLEC), dtype=np.float)
   dphiJdy = np.zeros((_self.NUMRULE,_self.NUMGLEC), dtype=np.float)
@@ -156,6 +157,7 @@ class Linear:
                   *dxdl1[k] )/jacobian;
 
   _self.mass = np.zeros((_self.NUMGLEC,_self.NUMGLEC), dtype=np.float)
+  _self.mr = np.zeros((_self.NUMGLEC,_self.NUMGLEC), dtype=np.float)
   _self.kxx  = np.zeros((_self.NUMGLEC,_self.NUMGLEC), dtype=np.float)
   _self.kyy  = np.zeros((_self.NUMGLEC,_self.NUMGLEC), dtype=np.float)
   _self.gx   = np.zeros((_self.NUMGLEC,_self.NUMGLEC), dtype=np.float)
@@ -167,6 +169,8 @@ class Linear:
     for j in range(0,_self.NUMGLEC):
      _self.mass[i][j] += _self.phiJ[k][i]*_self.phiJ[k][j]\
                          *jacobian*_self.gqWeights[k];
+     _self.mr[i][j]   += localy[k]*_self.phiJ[k][i] * _self.phiJ[k][j] \
+                         * jacobian * _self.gqWeights[k];
      _self.kxx[i][j]  += dphiJdx[k][i]*dphiJdx[k][j]\
                          *jacobian*_self.gqWeights[k];
      _self.kyy[i][j]  += dphiJdy[k][i]*dphiJdy[k][j]\
