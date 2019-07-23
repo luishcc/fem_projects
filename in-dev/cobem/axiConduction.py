@@ -82,8 +82,7 @@ def fem_matrix(_x, _y, _numele, _numnode, _ien):
                 j_global = _ien[elem, j_local]
 
                 k_global[i_global, j_global]      += ele_radius*axisym_tri.kxx[i_local, j_local]+\
-                                                     ele_radius*axisym_tri.kyy[i_local, j_local]+\
-                                                     axisym_tri.gy[i_local, j_local]
+                                                     ele_radius*axisym_tri.kyy[i_local, j_local]
                 mr_global[i_global, j_global]     += ele_radius*axisym_tri.mass[i_local, j_local]
 
 
