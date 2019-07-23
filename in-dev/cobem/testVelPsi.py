@@ -104,7 +104,6 @@ def fem_matrix(_x, _y, _numele, _numnode, _ien):
 
                 k2_global[i_global, j_global] += ele_radius * axisym_tri.kxx[i_local, j_local] + \
                                                  ele_radius * axisym_tri.kyy[i_local, j_local] + \
-                                                 axisym_tri.gy[i_local, j_local] + \
                                                  2.*axisym_tri.gy[i_local, j_local]
 
                 #k2_global[i_global, j_global] += axisym_tri.kxx[i_local, j_local] + \
