@@ -145,6 +145,7 @@ class Linear:
    dxdl2[k] = valxl2
    dydl1[k] = valyl1
    dydl2[k] = valyl2
+   #jacobian[k] = dxdl1[k] * dydl2[k] - dydl1[k] * dxdl2[k]
 
   dphiJdx = np.zeros((_self.NUMRULE,_self.NUMGLEC), dtype=np.float)
   dphiJdy = np.zeros((_self.NUMRULE,_self.NUMGLEC), dtype=np.float)
@@ -156,37 +157,33 @@ class Linear:
                   *dxdl1[k] )/jacobian;
 
   _self.mass = np.zeros((_self.NUMGLEC,_self.NUMGLEC), dtype=np.float)
+  _self.mr = np.zeros((_self.NUMGLEC,_self.NUMGLEC), dtype=np.float)
   _self.kxx  = np.zeros((_self.NUMGLEC,_self.NUMGLEC), dtype=np.float)
   _self.kyy  = np.zeros((_self.NUMGLEC,_self.NUMGLEC), dtype=np.float)
-  _self.kr   = np.zeros((_self.NUMGLEC,_self.NUMGLEC), dtype=np.float)
   _self.gx   = np.zeros((_self.NUMGLEC,_self.NUMGLEC), dtype=np.float)
   _self.gy   = np.zeros((_self.NUMGLEC,_self.NUMGLEC), dtype=np.float)
+  _self.dx   = np.zeros((_self.NUMGLEC,_self.NUMGLEC), dtype=np.float)
+  _self.dy   = np.zeros((_self.NUMGLEC,_self.NUMGLEC), dtype=np.float)
   for k in range(0,_self.NUMRULE): 
    for i in range(0,_self.NUMGLEC):
     for j in range(0,_self.NUMGLEC):
-     # mass = 2*pi*r * Ni * Nj
-     #      = r * Ni * Nj (r implemented at assemble)
      _self.mass[i][j] += _self.phiJ[k][i]*_self.phiJ[k][j]\
                          *jacobian*_self.gqWeights[k];
-     # kxx (dir z) = 2*pi*r * dNi/dz * dNj/dz
-     #             = r * dNi/dz * dNj/dz (r implemented at assemble)
+     _self.mr[i][j]   += localy[k]*_self.phiJ[k][i] * _self.phiJ[k][j] \
+                         * jacobian * _self.gqWeights[k];
      _self.kxx[i][j]  += dphiJdx[k][i]*dphiJdx[k][j]\
                          *jacobian*_self.gqWeights[k];
-     # kyy (dir r) = 2*pi*r * dNi/dr * dNj/dr
-     #             = r * dNi/dr * dNj/dr (r implemented at assemble)
      _self.kyy[i][j]  += dphiJdy[k][i]*dphiJdy[k][j]\
                          *jacobian*_self.gqWeights[k];
-     # kr (dir r) = 2*pi*r * (1/r) * dNi/dr * Nj
-     #            = dNi/dr * Nj
-     _self.kr[i][j]   += dphiJdy[k][i]*_self.phiJ[k][j]\
-                         *jacobian*_self.gqWeights[k]; 
-     # gx (dir z) = 2*pi*r * (1/r) * Ni * dCj/dz
-     #            = Ni * dCj/dz 
+     _self.kyy[i][j]  += dphiJdy[k][i]*dphiJdy[k][j]\
+                         *jacobian*_self.gqWeights[k];
      _self.gx[i][j]   += _self.gqPoints[k][i]*dphiJdx[k][j]\
                          *jacobian*_self.gqWeights[k];
-     # gy (dir r) = 2*pi*r * (1/r) * Ni * dCj/dr 
-     #            = Ni * dCj/dr 
      _self.gy[i][j]   += _self.gqPoints[k][i]*dphiJdy[k][j]\
+                         *jacobian*_self.gqWeights[k];
+     _self.dx[j][i]   += _self.gqPoints[k][j]*dphiJdx[k][i]\
+                         *jacobian*_self.gqWeights[k];
+     _self.dy[j][i]   += _self.gqPoints[k][j]*dphiJdy[k][i]\
                          *jacobian*_self.gqWeights[k];
 
 

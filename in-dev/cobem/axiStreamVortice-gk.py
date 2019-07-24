@@ -16,11 +16,13 @@ mesh_file = "poiseuille"
 # mesh_file = "fine"
 # mesh_file = "poi-var"
 
+savename = "2cylinder"
 
 fluid_mesh = gm.GMesh("mesh/" + mesh_file + "-fld.msh")
 
 x_fluid = fluid_mesh.X
-y_fluid = fluid_mesh.Y
+# y_fluid = fluid_mesh.Y
+y_fluid = fluid_mesh.Y + 1
 ien_fluid = fluid_mesh.IEN
 nodes_fluid = len(x_fluid)
 num_ele_fluid = len(ien_fluid)
@@ -32,7 +34,7 @@ axisym_tri = ele.Linear(x_fluid, y_fluid)
 # -------------------------------------------------------
 
 dt = 0.005
-time = 100
+time = 200
 
 # Fluid properties
 rho_fluid = 1000
@@ -45,7 +47,6 @@ viscosity_kin = 1
 
 # Flow
 omega_last = sp.zeros(nodes_fluid)
-psi_last = sp.zeros(nodes_fluid)
 vz = sp.zeros(nodes_fluid)
 vr = sp.zeros(nodes_fluid)
 
@@ -58,51 +59,55 @@ def fem_matrix(_x, _y, _numele, _numnode, _ien):
     k_global = sp.zeros((_numnode, _numnode), dtype="float64")
     mr_global = sp.zeros((_numnode, _numnode), dtype="float64")
     mr2_global = sp.zeros((_numnode, _numnode), dtype="float64")
-    mr_inv_global = sp.zeros((_numnode, _numnode), dtype="float64")
+    m1r_global = sp.zeros((_numnode, _numnode), dtype="float64")
+    m_global = sp.zeros((_numnode, _numnode), dtype="float64")
     gxr_global = sp.zeros((_numnode, _numnode), dtype="float64")
     gx = sp.zeros((_numnode, _numnode), dtype="float64")
     gy = sp.zeros((_numnode, _numnode), dtype="float64")
     gyr_global = sp.zeros((_numnode, _numnode), dtype="float64")
 
     for elem in range(_numele):
-
         v = [_ien[elem, 0], _ien[elem, 1], _ien[elem, 2]]
         axisym_tri.getAxiSym(v)
-
         ele_radius = (_y[v[0]] + _y[v[1]] + _y[v[2]])/3.
 
         for i_local in range(3):
             i_global = _ien[elem, i_local]
+
             for j_local in range(3):
                 j_global = _ien[elem, j_local]
 
-                k_global[i_global, j_global]     += ele_radius*axisym_tri.kxx[i_local, j_local]+\
-                                                    ele_radius*axisym_tri.kyy[i_local, j_local]+\
-                                                    axisym_tri.gy[i_local, j_local]
-                mr_global[i_global, j_global]     += ele_radius*axisym_tri.mass[i_local, j_local]
-                mr2_global[i_global, j_global]    += (ele_radius**2)*axisym_tri.mass[i_local, j_local]
-                mrinv_global[i_global, j_global]  += (1./ele_radius)*axisym_tri.mass[i_local, j_local]
-                gxr_global[i_global, j_global]    += ele_radius*axisym_tri.gx[i_local, j_local]
-                gx[i_global, j_global]            += axisym_tri.gx[i_local, j_local]
-                gyr_global[i_global, j_global]    += ele_radius*axisym_tri.gy[i_local, j_local]
-                gy[i_global, j_global]            += axisym_tri.gy[i_local, j_local]
+                k_global[i_global, j_global] += ele_radius * axisym_tri.kxx[i_local, j_local] + \
+                                                ele_radius * axisym_tri.kyy[i_local, j_local]
+
+                mr_global[i_global, j_global] += ele_radius*axisym_tri.mass[i_local, j_local]
+                mr2_global[i_global, j_global] += (ele_radius**2)*axisym_tri.mass[i_local, j_local]
+                m1r_global[i_global, j_global] += (1./ele_radius)*axisym_tri.mass[i_local, j_local]
+                m_global[i_global, j_global] += axisym_tri.mass[i_local, j_local]
+                gxr_global[i_global, j_global] += ele_radius*axisym_tri.gx[i_local, j_local]
+                gx[i_global, j_global] += axisym_tri.gx[i_local, j_local]
+                gyr_global[i_global, j_global] += ele_radius*axisym_tri.gy[i_local, j_local]
+                gy[i_global, j_global] += axisym_tri.gy[i_local, j_local]
+
+    return k_global, m_global, mr_global, mr2_global, m1r_global, gxr_global, gyr_global, gx, gy
 
 
-    return kr_global, mr_global, mr2_global, mr_inv_global, gxr_global, gyr_global, gx, gy
+print "Matrix Assembly"
+K, M, Mr, Mr2, M1r, Gxr, Gyr, Gx, Gy = fem_matrix(x_fluid, y_fluid, num_ele_fluid, nodes_fluid, ien_fluid)
 
-
-K, M, M2, M3, Gx, Gy, Gx2, Gy2 = fem_matrix(x_fluid, y_fluid, num_ele_fluid, nodes_fluid, ien_fluid)
-
-Mdt = M/dt
+Mdt = Mr/dt
 K_ni = K * viscosity_kin
 
 MLump = sp.zeros(nodes_fluid)
+MLumpr = sp.zeros(nodes_fluid)
+MinvLumpr = sp.zeros(nodes_fluid)
 MinvLump = sp.zeros(nodes_fluid)
 for i in range(nodes_fluid):
     for j in range(nodes_fluid):
         MLump[i] += M[i, j]
+        MLumpr[i] += Mr[i, j]
     MinvLump[i] = 1. / MLump[i]
-
+    MinvLumpr[i] = 1. / MLumpr[i]
 
 
 # ---------------------------------------
@@ -175,13 +180,12 @@ for i in range(nodes_fluid):
 # --------------------------------------
 # Psi K matrix with Dirichlet BC -- K_psi
 
-# K_psi = K + 2 * Gy2
-K_psi = K + 3 * Gy2 + Gy
-
+K_psi = K + 2 * Gy
 ccpsi = sp.zeros(nodes_fluid)
 for i in range(dirichlet_len_fluid):
     index = int(fluid_mesh.dirichlet_points[i][0] - 1)
-    value = fluid_mesh.dirichlet_points[i][1]
+    # value = fluid_mesh.dirichlet_points[i][1]               # Inside cylinder
+    value = fluid_mesh.dirichlet_points[i][1] * 2           # Between Cylinders
     for j in range(nodes_fluid):
         ccpsi[j] -= value * K[j, index]
         if j != index:
@@ -192,74 +196,66 @@ for i in range(dirichlet_len_fluid):
 # --------------------------------------
 
 
-# vr = sp.zeros(nodes_fluid)
-# vz = vz_a
 for i in Fluid_Boundary:
     j = int(i)
     vr[j] = 0.0
-    if x_fluid[j] == 0:
-        vz[j] = 1.0
-        vz[j] = vz_a[j]
+    if x_fluid[j] == 0 and 0 < y_fluid[j] < 1:
+        vz[j] = 2.0
+        # vz[j] = vz_a[j]
     if y_fluid[j] == 1:
         vz[j] = 0
         vr[j] = 0
-    # if y_fluid[j] == 0:
-    #    vz[j] = 4
 
-omega_last = sp.multiply(MinvLump, (sp.dot(Gx, vr) - sp.dot(Gy, vz)))
 
-F_psi = sp.dot(M2, omega_last) + ccpsi
+omega_last = sp.multiply(MinvLumpr, (sp.dot(Gxr, vr) - sp.dot(Gyr, vz)))
+
+F_psi = sp.dot(Mr2, omega_last) + ccpsi
 for i in range(dirichlet_len_fluid):
     index = int(fluid_mesh.dirichlet_points[i][0] - 1)
-    F_psi[index] = fluid_mesh.dirichlet_points[i][1]
+    # F_psi[index] = fluid_mesh.dirichlet_points[i][1]
+    F_psi[index] = fluid_mesh.dirichlet_points[i][1] * 2
 
-psi_last = sp.linalg.solve(K_psi, F_psi)
+psi = linalg.solve(K_psi, F_psi)
 
 
 # ----------------------------------------------------------
-# ---------------------- Loop No Tempo ------------------------
+# -------------------- Time iteration ----------------------
 
 for t in range(0, time):
     print "Solving System " + str((float(t)/time)*100) + "%"
 
-    vr = sp.zeros(nodes_fluid)
-    vz = vz_a
-    #
-    # for i in range(num_omega):
-    #     index = int(Fluid_Boundary[i])
-    #     vr[index] = 0
-    #     if y_fluid[index] == 1:
-    #         vz[index] = 0.
-    #         vr[index] = 0.
-    #     if x_fluid[index] == 0:
-    #         vz[index] = 1.
-    #         vz[index] = vz_a[index]
-        # if y_fluid[index] == 0:
-        #     vz[index] = 4.
+    for i in range(num_omega):
+        index = int(Fluid_Boundary[i])
+        vr[index] = 0
+        if y_fluid[index] == 1:
+            vz[index] = 0.
+            vr[index] = 0.
+        if x_fluid[index] == 0 and 0 < y_fluid[index] < 1:
+            vz[index] = 2.
+            # vz[index] = vz_a[index]
 
     # B.C. Vorticidade
-    W_in = sp.multiply(MinvLump, (sp.dot(Gx, vr) - sp.dot(Gy, vz)))
+    W_in = sp.multiply(MinvLumpr, (sp.dot(Gxr, vr) - sp.dot(Gyr, vz)))
     W_axis = 0.
     W_wall = W_in
     ccomega = sp.zeros(nodes_fluid)
 
     # Solução de Wz e Psi
-    Conv = vz * sp.diag(Gx) + vr * sp.diag(Gy)
-    # Conv = vz * sp.diag(Gx)
+    Conv = vz * sp.diag(Gxr) + vr * (sp.diag(Gyr) - sp.diag(Mr))
 
-    LHS_Ni = Mdt + K_ni + sp.diag(Conv) + M3 * viscosity_kin + Gy2 + 2*Gx2
+    LHS_Ni = Mdt + K_ni + sp.diag(Conv) + M1r * viscosity_kin
     LHS_omega = sp.copy(LHS_Ni)
 
     for i in range(len(Fluid_Boundary_in)):
-       index = int(Fluid_Boundary_in[i])
-       value = 8*y_fluid[index]
-       for j in range(nodes_fluid):
-           ccomega[j] -= value * LHS_Ni[j, index]
-           if j != index:
-               LHS_omega[index, j] = 0
-               LHS_omega[j, index] = 0
-           else:
-               LHS_omega[index, j] = 1
+        index = int(Fluid_Boundary_in[i])
+        value = 8*y_fluid[index]
+        for j in range(nodes_fluid):
+            ccomega[j] -= value * LHS_Ni[j, index]
+            if j != index:
+                LHS_omega[index, j] = 0
+                LHS_omega[j, index] = 0
+            else:
+                LHS_omega[index, j] = 1
 
     for i in range(len(Fluid_Boundary_axis)):
         index = int(Fluid_Boundary_axis[i])
@@ -286,8 +282,8 @@ for t in range(0, time):
     F_omega = sp.dot(Mdt, omega_last) + ccomega
 
     for i in range(len(Fluid_Boundary_in)):
-       index = int(Fluid_Boundary_in[i])
-       F_omega[index] = 8*y_fluid[index]
+        index = int(Fluid_Boundary_in[i])
+        F_omega[index] = 8*y_fluid[index]
 
     for i in range(len(Fluid_Boundary_wall)):
         index = int(Fluid_Boundary_wall[i])
@@ -297,28 +293,27 @@ for t in range(0, time):
         index = int(Fluid_Boundary_axis[i])
         F_omega[index] = W_axis
 
-    omega = sp.linalg.solve(LHS_omega, F_omega)
+    omega = linalg.solve(LHS_omega, F_omega)
 
-    F_psi = sp.dot(M2, omega) + ccpsi
+    F_psi = sp.dot(Mr2, omega) + ccpsi
     for i in range(dirichlet_len_fluid):
         index = int(fluid_mesh.dirichlet_points[i][0]-1)
-        F_psi[index] = fluid_mesh.dirichlet_points[i][1]
+        # F_psi[index] = fluid_mesh.dirichlet_points[i][1]
+        F_psi[index] = fluid_mesh.dirichlet_points[i][1] * 2
 
-    psi = sp.linalg.solve(K_psi, F_psi)
+    psi = linalg.solve(K_psi, F_psi)
 
     # Salvar VTK
     vtk_t = IO.InOut(x_fluid, y_fluid, ien_fluid, nodes_fluid, num_ele_fluid, psi, omega, vz_a
-                     , (psi_a-psi), omega_a-omega, vz, vr)
-    vtk_t.saveVTK(cwd+"/results", mesh_file + str(t+1))
+                     , psi_a, omega_a, vz, vr)
+    vtk_t.saveVTK(cwd+"/results", savename + str(t+1))
 
-    Psi_old = sp.copy(psi)
     omega_last = sp.copy(omega)
 
     # Calculo de vz e vr
 
-    # vz = sp.multiply(MinvLump, sp.dot(Gy2, psi))
-    # vz = sp.multiply(MinvLump, sp.dot(Gy2, psi_a))
-    # vr = -1.0 * sp.multiply(MinvLump, sp.dot(Gx2, psi))
+    vz = sp.multiply(MinvLumpr, sp.dot(Gy, psi))
+    vr = -1.0 * sp.multiply(MinvLumpr, sp.dot(Gx, psi))
 
 
 # ----------------- Fim de Loop -------------------
