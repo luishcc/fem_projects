@@ -20,7 +20,8 @@ mesh_file = "tube-coarse"
 # mesh_file = "tube-coarse-dz"
 
 # savename = mesh_file
-savename = "axi_cond_2d"
+# savename = "axi_cond_2d"
+savename = "generation"
 
 global_mesh = gm.GMesh("mesh/" + mesh_file + ".msh")
 
@@ -60,6 +61,8 @@ vr = sp.zeros(nodes_global)
 
 # Heat
 temp_old = sp.zeros(nodes_global)
+q = 1
+Q = sp.ones(nodes_global) * q
 
 # -------------------------------------------------------
 #     Matrix Assembly
@@ -152,7 +155,7 @@ for i in range(nodes_global):
 for t in range(0, time):
     print "Solving System " + str((float(t)/time)*100) + "%"
 
-    RHS = sp.dot(Mdt, temp_old) + cct
+    RHS = sp.dot(Mdt, temp_old) + cct + sp.dot(M, Q)
     for i in range(dirichlet_len):
         index = int(global_mesh.dirichlet_points[i][0]-1)
         RHS[index] = global_mesh.dirichlet_points[i][1]
@@ -163,6 +166,9 @@ for t in range(0, time):
     vtk_t = IO.InOut(x_global, y_global, ien_global, nodes_global, num_ele_global, temp_old, None, None
                      , temp_ana, abs(temp_ana-temp), None, None)
     vtk_t.saveVTK(cwd+"/results", savename + str(t+1))
+
+    if max(abs(temp - temp_a)) <= 1e-06:
+        break
 
     temp_old = sp.copy(temp)
 

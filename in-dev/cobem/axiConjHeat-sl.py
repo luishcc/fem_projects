@@ -21,7 +21,7 @@ fluid_mesh = gm.GMesh("mesh/" + mesh_file + "-fld.msh")
 global_mesh = gm.GMesh("mesh/" + mesh_file + ".msh")
 
 x_fluid = fluid_mesh.X
-y_fluid = fluid_mesh.Y
+y_fluid = fluid_mesh.Y + 1
 ien_fluid = fluid_mesh.IEN
 nodes_fluid = len(x_fluid)
 num_ele_fluid = len(ien_fluid)
@@ -29,7 +29,7 @@ num_ele_fluid = len(ien_fluid)
 axisym_tri = ele.Linear(x_fluid, y_fluid)
 
 x_global = global_mesh.X
-y_global = global_mesh.Y
+y_global = global_mesh.Y + 1
 ien_global = global_mesh.IEN
 nodes_global = len(x_global)
 num_ele_global = len(ien_global)
@@ -50,13 +50,13 @@ for i in range(nodes_global):
 #     Simulation Parameters
 # -------------------------------------------------------
 
-dt = 0.5
-time = 100
+dt = 0.05
+time = 1000
 
 # Fluid properties
 rho_fluid = 1000
 viscosity_din = 1
-viscosity_kin = 0.0001
+viscosity_kin = 0.001
 alpha_fluid = 0.001
 alpha_solid = 0.05
 
@@ -118,7 +118,7 @@ def fem_matrix(_x, _y, _numele, _numnode, _ien, _alfa, _axi):
 
 alfa_global = sp.zeros(nodes_global)
 for i in range(nodes_global):
-    if y_global[i] > 1:
+    if y_global[i] > min(y_fluid):
         alfa_global[i] = alpha_fluid
     else:
         alfa_global[i] = alpha_solid
@@ -145,9 +145,13 @@ for i in range(nodes_fluid):
 
 print " Lumped Global"
 
+temp_last = sp.zeros(nodes_global)
+
 MLumprh = sp.zeros(nodes_global)
 MinvLumprh = sp.zeros(nodes_global)
 for i in range(nodes_global):
+    if y_global[i]<= min(y_fluid):
+        temp_last[i] = 10
     for j in range(nodes_global):
         MLumprh[i] += Mrh[i, j]
     MinvLumprh[i] = 1. / MLumprh[i]
@@ -250,7 +254,7 @@ ccpsi = sp.zeros(nodes_fluid)
 for i in range(dirichlet_len_fluid):
     index = int(fluid_mesh.dirichlet_points[i][0] - 1)
     # value = fluid_mesh.dirichlet_points[i][1]               # Inside cylinder
-    value = fluid_mesh.dirichlet_points[i][1] * 2           # Between Cylinders
+    value = psi_a[index]       # Between Cylinders
     for j in range(nodes_fluid):
         ccpsi[j] -= value * K[j, index]
         if j != index:
@@ -278,7 +282,7 @@ F_psi = sp.dot(Mr2, omega_last) + ccpsi
 for i in range(dirichlet_len_fluid):
     index = int(fluid_mesh.dirichlet_points[i][0] - 1)
     # F_psi[index] = fluid_mesh.dirichlet_points[i][1]
-    F_psi[index] = fluid_mesh.dirichlet_points[i][1] * 2
+    F_psi[index] = psi_a[index]
 
 psi = linalg.solve(K_psi, F_psi)
 
@@ -289,7 +293,6 @@ print " LHS_t"
 
 dirichlet_len_global = len(global_mesh.dirichlet_points)
 
-temp_last = sp.zeros(nodes_global)
 
 LHS_temp = Mdth + Kh
 Var = sp.copy(LHS_temp)
@@ -338,7 +341,6 @@ for t in range(0, time):
         else:
             vz_global[i] = 0
             vr_global[i] = 0
-
 
     omega_dep = sl.Linear2D(nodes_fluid, neighbour, ien_fluid, x_fluid,
                             y_fluid, vz, vr, dt, omega_last)
@@ -415,7 +417,7 @@ for t in range(0, time):
     for i in range(dirichlet_len_fluid):
         index = int(fluid_mesh.dirichlet_points[i][0]-1)
         # F_psi[index] = fluid_mesh.dirichlet_points[i][1]
-        F_psi[index] = fluid_mesh.dirichlet_points[i][1] * 2
+        F_psi[index] = psi_a[index]
 
     psi = linalg.solve(K_psi, F_psi)
 

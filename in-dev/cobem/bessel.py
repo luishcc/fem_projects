@@ -24,6 +24,34 @@ num_ele = len(ien)
 
 temp = sp.zeros(nodes)
 
+# maxsum = 100
+# for i in range(nodes):
+#     print i, " / ", nodes
+#     z = x[i]
+#     r = y[i]
+#     for n in range(1,maxsum):
+#         ln = n*(sp.pi/5.)
+#         i0 = sp.special.iv(0, ln)
+#         ir = sp.special.iv(0, r*ln)
+#         c1 = (2./ln) * (sp.sin(2.5*ln))**2
+#         c2 = 2.5 - sp.sin(10*ln)/(4*ln)
+#         cn = c1 / (i0 * c2)
+#         temp[i] += cn * ir * sp.sin(z*ln)
+
+
+L = 5
+q = 1
+k = 1
+
+def gz(_z):
+    return (1 - (q*L**2)*(1./(2.*k)) * ((_z/L) - (_z/L)**2)) * sp.sin(ln * _z)
+
+def g(_z):
+    return (q*L**2)*(1./(2.*k)) * ((_z/L) - (_z/L)**2)
+
+
+from scipy.integrate import quad
+
 maxsum = 100
 for i in range(nodes):
     print i, " / ", nodes
@@ -33,10 +61,10 @@ for i in range(nodes):
         ln = n*(sp.pi/5.)
         i0 = sp.special.iv(0, ln)
         ir = sp.special.iv(0, r*ln)
-        c1 = (2./ln) * (sp.sin(2.5*ln))**2
+        c1 = quad(gz, 0, L)[0]
         c2 = 2.5 - sp.sin(10*ln)/(4*ln)
         cn = c1 / (i0 * c2)
-        temp[i] += cn * ir * sp.sin(z*ln)
+        temp[i] += cn * ir * sp.sin(z*ln) + (g(z)*L**2)*(1./(2.*k)) * ((z/L) - (z/L)**2)
 
 
 # Salvar VTK
