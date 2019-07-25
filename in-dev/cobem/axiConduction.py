@@ -134,19 +134,39 @@ temp_ana = sp.zeros(nodes_global)
 
 from scipy import special
 
-maxsum = 1000
+# maxsum = 1000
+# for i in range(nodes_global):
+#     z = x_global[i]
+#     r = y_global[i]
+#     for n in range(1,maxsum):
+#         ln = n*(sp.pi/5.)
+#         i0 = sp.special.iv(0, ln)
+#         ir = sp.special.iv(0, r*ln)
+#         c1 = (2./ln) * (sp.sin(2.5*ln))**2
+#         c2 = 2.5 - sp.sin(10*ln)/(4*ln)
+#         cn = c1 / (i0 * c2)
+#         temp_ana[i] += cn * ir * sp.sin(z*ln)
+
+def gz(_z):
+    return (1 - (q*L**2)*(1./(2.*k)) * ((_z/L) - (_z/L)**2)) * sp.sin(ln * _z)
+
+from scipy.integrate import quad
+L = max(x_global)
+k = 1
+maxsum = 100
 for i in range(nodes_global):
+    print i, " / ", nodes_global
     z = x_global[i]
     r = y_global[i]
-    for n in range(1,maxsum):
+    for n in range(1, maxsum):
         ln = n*(sp.pi/5.)
         i0 = sp.special.iv(0, ln)
         ir = sp.special.iv(0, r*ln)
-        c1 = (2./ln) * (sp.sin(2.5*ln))**2
+        c1 = quad(gz, 0, L)[0]
         c2 = 2.5 - sp.sin(10*ln)/(4*ln)
         cn = c1 / (i0 * c2)
         temp_ana[i] += cn * ir * sp.sin(z*ln)
-
+    temp_ana[i] += (q*L**2)*(1./(2.*k)) * ((z/L) - (z/L)**2)
 
 
 # ----------------------------------------------------------

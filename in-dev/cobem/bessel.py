@@ -46,10 +46,6 @@ k = 1
 def gz(_z):
     return (1 - (q*L**2)*(1./(2.*k)) * ((_z/L) - (_z/L)**2)) * sp.sin(ln * _z)
 
-def g(_z):
-    return (q*L**2)*(1./(2.*k)) * ((_z/L) - (_z/L)**2)
-
-
 from scipy.integrate import quad
 
 maxsum = 100
@@ -64,8 +60,8 @@ for i in range(nodes):
         c1 = quad(gz, 0, L)[0]
         c2 = 2.5 - sp.sin(10*ln)/(4*ln)
         cn = c1 / (i0 * c2)
-        temp[i] += cn * ir * sp.sin(z*ln) + (g(z)*L**2)*(1./(2.*k)) * ((z/L) - (z/L)**2)
-
+        temp[i] += cn * ir * sp.sin(z*ln)
+    temp[i] += (q*L**2)*(1./(2.*k)) * ((z/L) - (z/L)**2)
 
 # Salvar VTK
 vtk_t = IO.InOut(x, y, ien, nodes, num_ele, temp, None, None
