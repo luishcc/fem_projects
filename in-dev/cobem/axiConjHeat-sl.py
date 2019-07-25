@@ -5,6 +5,7 @@ import scipy as sp
 from scipy import linalg
 import os
 import Elements as ele
+import semiLagrangean as sl
 
 cwd = os.getcwd()
 
@@ -12,13 +13,12 @@ cwd = os.getcwd()
 #     Reading Mesh
 # -------------------------------------------------------
 
-mesh_file = "poiseuille"
-# mesh_file = "fine"
-# mesh_file = "poi-var"
+mesh_file = "conjugate"
 
-savename = "2cylinder-gk"
+savename = mesh_file
 
 fluid_mesh = gm.GMesh("mesh/" + mesh_file + "-fld.msh")
+global_mesh = gm.GMesh("mesh/" + mesh_file + ".msh")
 
 x_fluid = fluid_mesh.X
 # y_fluid = fluid_mesh.Y
@@ -29,24 +29,41 @@ num_ele_fluid = len(ien_fluid)
 
 axisym_tri = ele.Linear(x_fluid, y_fluid)
 
+x_global = global_mesh.X
+# y_global = global_mesh.Y
+y_global = global_mesh.Y + 1
+ien_global = global_mesh.IEN
+nodes_global = len(x_global)
+num_ele_global = len(ien_global)
+
+axisym_tri_global = ele.Linear(x_global, y_global)
+
+
+Vel_points_convert = sp.zeros(nodes_global) -1
+for i in range(nodes_global):
+    for j in range(nodes_fluid):
+        if (x_global[i] == x_fluid[j]) and (y_global[i] == y_fluid[j]):
+            Vel_points_convert[i] = j
+
 # -------------------------------------------------------
 #     Simulation Parameters
 # -------------------------------------------------------
 
-dt = 0.005
-time = 200
+dt = 0.05
+time = 10
 
 # Fluid properties
 rho_fluid = 1000
 viscosity_din = 1
 viscosity_kin = 1
+alpha_fluid = 1
+alpha_solid = 5
 
 # -------------------------------------------------------
 #     Initial Variables
 # -------------------------------------------------------
 
 # Flow
-omega_last = sp.zeros(nodes_fluid)
 vz = sp.zeros(nodes_fluid)
 vr = sp.zeros(nodes_fluid)
 
@@ -55,7 +72,7 @@ vr = sp.zeros(nodes_fluid)
 # -------------------------------------------------------
 
 
-def fem_matrix(_x, _y, _numele, _numnode, _ien):
+def fem_matrix(_x, _y, _numele, _numnode, _ien, _alfa):
     k_global = sp.zeros((_numnode, _numnode), dtype="float64")
     mr_global = sp.zeros((_numnode, _numnode), dtype="float64")
     mr2_global = sp.zeros((_numnode, _numnode), dtype="float64")
@@ -67,6 +84,15 @@ def fem_matrix(_x, _y, _numele, _numnode, _ien):
     gyr_global = sp.zeros((_numnode, _numnode), dtype="float64")
 
     for elem in range(_numele):
+
+        alfa = 0
+        for i in range(3):
+            xx[i] = _x[_ien[elem, i]]
+            yy[i] = _y[_ien[elem, i]]
+            alfa += _alfa[_ien[elem, i]]
+
+        alfa = alfa * (1/3.0)
+
         v = [_ien[elem, 0], _ien[elem, 1], _ien[elem, 2]]
         axisym_tri.getAxiSym(v)
         ele_radius = (_y[v[0]] + _y[v[1]] + _y[v[2]])/3.
@@ -77,8 +103,8 @@ def fem_matrix(_x, _y, _numele, _numnode, _ien):
             for j_local in range(3):
                 j_global = _ien[elem, j_local]
 
-                k_global[i_global, j_global] += ele_radius * axisym_tri.kxx[i_local, j_local] + \
-                                                ele_radius * axisym_tri.kyy[i_local, j_local]
+                k_global[i_global, j_global] += alfa * ele_radius * axisym_tri.kxx[i_local, j_local] + \
+                                                alfa * ele_radius * axisym_tri.kyy[i_local, j_local]
 
                 mr_global[i_global, j_global] += ele_radius*axisym_tri.mass[i_local, j_local]
                 mr2_global[i_global, j_global] += (ele_radius**2)*axisym_tri.mass[i_local, j_local]
@@ -91,22 +117,29 @@ def fem_matrix(_x, _y, _numele, _numnode, _ien):
 
     return k_global, m_global, mr_global, mr2_global, m1r_global, gxr_global, gyr_global, gx, gy
 
+alfa_global = sp.zeros(nodes_global)
+alfa_fluid = sp.ones(nodes_fluid) * alfa_fluid
+for i in range(nodes_global):
+    if y_global[i] > 1:
+        alfa_global[i] = alpha_fluid
+    else:
+        alfa_global[i] = alpha_solid
 
 print "Matrix Assembly"
-K, M, Mr, Mr2, M1r, Gxr, Gyr, Gx, Gy = fem_matrix(x_fluid, y_fluid, num_ele_fluid, nodes_fluid, ien_fluid)
+K, M, Mr, Mr2, M1r, Gxr, Gyr, Gx, Gy = fem_matrix(x_fluid, y_fluid, num_ele_fluid,
+                                                  nodes_fluid, ien_fluid, alfa_fluid)
+
+Kh, Mh, Mrh, Mr2h, M1rh, Gxrh, Gyrh, Gxh, Gyh = fem_matrix(x_global, y_global, num_ele_global,
+                                                           nodes_global, ien_global, alfa_global)
 
 Mdt = Mr/dt
 K_ni = K * viscosity_kin
 
-MLump = sp.zeros(nodes_fluid)
 MLumpr = sp.zeros(nodes_fluid)
 MinvLumpr = sp.zeros(nodes_fluid)
-MinvLump = sp.zeros(nodes_fluid)
 for i in range(nodes_fluid):
     for j in range(nodes_fluid):
-        MLump[i] += M[i, j]
         MLumpr[i] += Mr[i, j]
-    MinvLump[i] = 1. / MLump[i]
     MinvLumpr[i] = 1. / MLumpr[i]
 
 
@@ -172,7 +205,6 @@ vz_a = sp.zeros(nodes_fluid)
 psi_a = sp.zeros(nodes_fluid)
 omega_a = sp.zeros(nodes_fluid)
 dpdx = -16
-
 gg = -dpdx/(4 * viscosity_din)
 
 # Inside cylinder
@@ -196,6 +228,7 @@ for i in range(nodes_fluid):
                (sp.log(ri) - 0.5 - sp.log(R1)) - c0
 
     omega_a[i] = 2 * gg * ri - gg * (R2**2 - R1**2) * (1./sp.log(R2/R1)) * (1./ri)
+
 
 # --------------------------------------
 # Psi K matrix with Dirichlet BC -- K_psi
@@ -240,30 +273,34 @@ psi = linalg.solve(K_psi, F_psi)
 
 # ----------------------------------------------------------
 # -------------------- Time iteration ----------------------
-
+neighbour = sl.neighbourElements(nodes_fluid, ien_fluid)
+neighbour = sl.neighbourElements(nodes_global, ien_global)
 for t in range(0, time):
     print "Solving System " + str((float(t)/time)*100) + "%"
 
     for i in range(num_omega):
         index = int(Fluid_Boundary[i])
         vr[index] = 0
-        if y_fluid[index] == max(y_fluid) or y_fluid[index] == min(y_fluid):
+        if y_fluid[index] == max(y_fluid):
             vz[index] = 0.
             vr[index] = 0.
         if x_fluid[index] == 0 and min(y_fluid) < y_fluid[index] < max(y_fluid):
             vz[index] = 2.
             # vz[index] = vz_a[index]
 
+    omega_dep = sl.Linear2D(nodes_fluid, neighbour, ien_fluid, x_fluid,
+                           y_fluid, vz, vr, dt, omega_last)
+
     # B.C. Vorticidade
     W_in = sp.multiply(MinvLumpr, (sp.dot(Gxr, vr) - sp.dot(Gyr, vz)))
-    W_axis = 0.
+    W_axis = W_in
     W_wall = W_in
     ccomega = sp.zeros(nodes_fluid)
 
     # Solução de Wz e Psi
-    Conv = vz * sp.diag(Gxr) + vr * (sp.diag(Gyr) - sp.diag(Mr))
+    Conv = vr * sp.diag(Mr)
 
-    LHS_Ni = Mdt + K_ni + sp.diag(Conv) + M1r * viscosity_kin
+    LHS_Ni = Mdt + K_ni - sp.diag(Conv) + M1r * viscosity_kin
     LHS_omega = sp.copy(LHS_Ni)
 
     for i in range(len(Fluid_Boundary_in)):
@@ -302,12 +339,13 @@ for t in range(0, time):
             else:
                 LHS_omega[index, j] = 1
 
-    F_omega = sp.dot(Mdt, omega_last) + ccomega
+    F_omega = sp.dot(Mdt, omega_dep) + ccomega
 
     for i in range(len(Fluid_Boundary_in)):
         index = int(Fluid_Boundary_in[i])
         # F_omega[index] = W_in[index]
         F_omega[index] = omega_a[index]
+
 
     for i in range(len(Fluid_Boundary_wall)):
         index = int(Fluid_Boundary_wall[i])
@@ -321,19 +359,21 @@ for t in range(0, time):
 
     omega = linalg.solve(LHS_omega, F_omega)
 
-    # F_psi = sp.dot(Mr2, omega) + ccpsi
-    F_psi = sp.dot(Mr2, omega_a) + ccpsi
+    F_psi = sp.dot(Mr2, omega) + ccpsi
     for i in range(dirichlet_len_fluid):
-        index = int(fluid_mesh.dirichlet_points[i][0] - 1)
+        index = int(fluid_mesh.dirichlet_points[i][0]-1)
         # F_psi[index] = fluid_mesh.dirichlet_points[i][1]
         F_psi[index] = fluid_mesh.dirichlet_points[i][1] * 2
 
     psi = linalg.solve(K_psi, F_psi)
 
+
+
+
     # Salvar VTK
     vtk_t = IO.InOut(x_fluid, y_fluid, ien_fluid, nodes_fluid, num_ele_fluid, psi, omega, vz_a
                      , psi_a, omega_a, vz, vr)
-    vtk_t.saveVTK(cwd + "/results", savename + str(t + 1))
+    vtk_t.saveVTK(cwd+"/results", savename + str(t+1))
 
     omega_last = sp.copy(omega)
 
@@ -343,5 +383,5 @@ for t in range(0, time):
     vr = -1.0 * sp.multiply(MinvLumpr, sp.dot(Gx, psi))
 
 
-    # ----------------- Fim de Loop -------------------
-    # -------------------------------------------------
+# ----------------- Fim de Loop -------------------
+# -------------------------------------------------
