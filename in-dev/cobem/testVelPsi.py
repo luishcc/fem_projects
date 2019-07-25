@@ -22,8 +22,8 @@ savename = mesh_file + "-test"
 fluid_mesh = gm.GMesh("mesh/" + mesh_file + "-fld.msh")
 
 x_fluid = fluid_mesh.X
-# y_fluid = fluid_mesh.Y
-y_fluid = fluid_mesh.Y + 1
+y_fluid = fluid_mesh.Y
+# y_fluid = fluid_mesh.Y + 1
 ien_fluid = fluid_mesh.IEN
 nodes_fluid = len(x_fluid)
 num_ele_fluid = len(ien_fluid)
@@ -146,26 +146,26 @@ dpdx = -16
 gg = -dpdx/(4 * viscosity_din)
 
 # Inside cylinder
-# for i in range(nodes_fluid):
-#     vz_a[i] = gg * (1 - y_fluid[i]**2)
-#     psi_a[i] = gg * (0.5 * y_fluid[i]**2 - 0.25 * y_fluid[i]**4)
-#     omega_a[i] = 2 * gg * y_fluid[i]
+for i in range(nodes_fluid):
+    vz_a[i] = gg * (1 - y_fluid[i]**2)
+    psi_a[i] = gg * (0.5 * y_fluid[i]**2 - 0.25 * y_fluid[i]**4)
+    omega_a[i] = 2 * gg * y_fluid[i]
 
 # Between cylinders
-R1 = min(y_fluid)
-R2 = max(y_fluid)
-for i in range(nodes_fluid):
-    ri = y_fluid[i]
-    vz_a[i] = gg * (R1 - ri ** 2) + \
-              gg * (R2**2 - R1**2) * (sp.log(ri/R1) / sp.log(R2/R1))
-
-    c0 = gg * 0.25 * R1**4 - gg * (R2**2 - R1**2) * (1./sp.log(R2/R1)) * \
-         0.5 * R1**2 * 0.5
-    psi_a[i] = gg * (0.5 * R1**2 * ri ** 2 - 0.25 * ri**4) + \
-               gg * (R2**2 - R1**2) * (1./sp.log(R2/R1)) * 0.5 * ri**2 * \
-               (sp.log(ri) - 0.5 - sp.log(R1)) - c0
-
-    omega_a[i] = 2 * gg * ri - gg * (R2**2 - R1**2) * (1./sp.log(R2/R1)) * (1./ri)
+# R1 = min(y_fluid)
+# R2 = max(y_fluid)
+# for i in range(nodes_fluid):
+#     ri = y_fluid[i]
+#     vz_a[i] = gg * (R1 - ri ** 2) + \
+#               gg * (R2**2 - R1**2) * (sp.log(ri/R1) / sp.log(R2/R1))
+#
+#     c0 = gg * 0.25 * R1**4 - gg * (R2**2 - R1**2) * (1./sp.log(R2/R1)) * \
+#          0.5 * R1**2 * 0.5
+#     psi_a[i] = gg * (0.5 * R1**2 * ri ** 2 - 0.25 * ri**4) + \
+#                gg * (R2**2 - R1**2) * (1./sp.log(R2/R1)) * 0.5 * ri**2 * \
+#                (sp.log(ri) - 0.5 - sp.log(R1)) - c0
+#
+#     omega_a[i] = 2 * gg * ri - gg * (R2**2 - R1**2) * (1./sp.log(R2/R1)) * (1./ri)
 
 # --------------------------------------
 # Psi K matrix with Dirichlet BC -- K_psi
@@ -177,8 +177,8 @@ K_psi = 1 * K
 ccpsi = sp.zeros(nodes_fluid)
 for i in range(dirichlet_len_fluid):
     index = int(fluid_mesh.dirichlet_points[i][0] - 1)
-    # value = fluid_mesh.dirichlet_points[i][1]
-    value = fluid_mesh.dirichlet_points[i][1] * 2
+    value = fluid_mesh.dirichlet_points[i][1]
+    # value = fluid_mesh.dirichlet_points[i][1] * 2
     for j in range(nodes_fluid):
         ccpsi[j] -= value * K[j, index]
         if j != index:
@@ -190,8 +190,8 @@ for i in range(dirichlet_len_fluid):
 F_psi = sp.dot(Mr2, omega_a) + ccpsi
 for i in range(dirichlet_len_fluid):
     index = int(fluid_mesh.dirichlet_points[i][0] - 1)
-    # F_psi[index] = fluid_mesh.dirichlet_points[i][1]
-    F_psi[index] = fluid_mesh.dirichlet_points[i][1]*2
+    F_psi[index] = fluid_mesh.dirichlet_points[i][1]
+    # F_psi[index] = fluid_mesh.dirichlet_points[i][1]*2
 
 
 psi_numeric = sp.linalg.solve(K_psi, F_psi)
@@ -201,12 +201,21 @@ psi_numeric = sp.linalg.solve(K_psi, F_psi)
 vz = sp.multiply(MinvLump, sp.dot(Gy, psi_numeric))
 # vz = sp.multiply(MinvLump, sp.dot(Gy, psi_numeric))
 
-vr = -1.0 * sp.multiply(MinvLump, sp.dot(Gx, psi_numeric))
+vz_axis = sp.multiply(MinvLump, sp.dot(K, psi_numeric))
+# vz_axis = vz
+
+
+vr = -1 * sp.multiply(MinvLump, sp.dot(Gx, psi_numeric))
 
 for i in range(nodes_fluid):
-    if y_fluid[i] == max(y_fluid) or y_fluid[i] == min(y_fluid):
+    if y_fluid[i] == 0:
+        print i
+        vz[i] = vz_axis[i]
+
+    if y_fluid[i] == max(y_fluid):
         print i
         vz[i] = 0
+
 
 #omega = -sp.multiply(MinvLump,  sp.dot(Gyr, vz)) + sp.multiply(MinvLump,  sp.dot(Gxr, vr))
 omega = -sp.multiply(MinvLump,  sp.dot(Gyr, vz_a))

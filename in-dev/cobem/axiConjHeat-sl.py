@@ -21,8 +21,7 @@ fluid_mesh = gm.GMesh("mesh/" + mesh_file + "-fld.msh")
 global_mesh = gm.GMesh("mesh/" + mesh_file + ".msh")
 
 x_fluid = fluid_mesh.X
-# y_fluid = fluid_mesh.Y
-y_fluid = fluid_mesh.Y + 1
+y_fluid = fluid_mesh.Y
 ien_fluid = fluid_mesh.IEN
 nodes_fluid = len(x_fluid)
 num_ele_fluid = len(ien_fluid)
@@ -30,34 +29,36 @@ num_ele_fluid = len(ien_fluid)
 axisym_tri = ele.Linear(x_fluid, y_fluid)
 
 x_global = global_mesh.X
-# y_global = global_mesh.Y
-y_global = global_mesh.Y + 1
+y_global = global_mesh.Y
 ien_global = global_mesh.IEN
 nodes_global = len(x_global)
 num_ele_global = len(ien_global)
 
 axisym_tri_global = ele.Linear(x_global, y_global)
 
-
-Vel_points_convert = sp.zeros(nodes_global) -1
+count = 0
+Vel_points_convert = sp.zeros(nodes_global) - 1
 for i in range(nodes_global):
     for j in range(nodes_fluid):
         if (x_global[i] == x_fluid[j]) and (y_global[i] == y_fluid[j]):
             Vel_points_convert[i] = j
+            count += 1
+            print count, " / ", nodes_fluid
+
 
 # -------------------------------------------------------
 #     Simulation Parameters
 # -------------------------------------------------------
 
-dt = 0.05
-time = 10
+dt = 0.5
+time = 100
 
 # Fluid properties
 rho_fluid = 1000
 viscosity_din = 1
-viscosity_kin = 1
-alpha_fluid = 1
-alpha_solid = 5
+viscosity_kin = 0.0001
+alpha_fluid = 0.001
+alpha_solid = 0.05
 
 # -------------------------------------------------------
 #     Initial Variables
@@ -72,7 +73,7 @@ vr = sp.zeros(nodes_fluid)
 # -------------------------------------------------------
 
 
-def fem_matrix(_x, _y, _numele, _numnode, _ien, _alfa):
+def fem_matrix(_x, _y, _numele, _numnode, _ien, _alfa, _axi):
     k_global = sp.zeros((_numnode, _numnode), dtype="float64")
     mr_global = sp.zeros((_numnode, _numnode), dtype="float64")
     mr2_global = sp.zeros((_numnode, _numnode), dtype="float64")
@@ -87,14 +88,12 @@ def fem_matrix(_x, _y, _numele, _numnode, _ien, _alfa):
 
         alfa = 0
         for i in range(3):
-            xx[i] = _x[_ien[elem, i]]
-            yy[i] = _y[_ien[elem, i]]
             alfa += _alfa[_ien[elem, i]]
 
         alfa = alfa * (1/3.0)
 
         v = [_ien[elem, 0], _ien[elem, 1], _ien[elem, 2]]
-        axisym_tri.getAxiSym(v)
+        _axi.getAxiSym(v)
         ele_radius = (_y[v[0]] + _y[v[1]] + _y[v[2]])/3.
 
         for i_local in range(3):
@@ -118,23 +117,25 @@ def fem_matrix(_x, _y, _numele, _numnode, _ien, _alfa):
     return k_global, m_global, mr_global, mr2_global, m1r_global, gxr_global, gyr_global, gx, gy
 
 alfa_global = sp.zeros(nodes_global)
-alfa_fluid = sp.ones(nodes_fluid) * alfa_fluid
 for i in range(nodes_global):
     if y_global[i] > 1:
         alfa_global[i] = alpha_fluid
     else:
         alfa_global[i] = alpha_solid
 
-print "Matrix Assembly"
+print " Fluid Matrix Assembly"
 K, M, Mr, Mr2, M1r, Gxr, Gyr, Gx, Gy = fem_matrix(x_fluid, y_fluid, num_ele_fluid,
-                                                  nodes_fluid, ien_fluid, alfa_fluid)
+                                                  nodes_fluid, ien_fluid, sp.ones(nodes_fluid), axisym_tri)
+
+print " Global Matrix Assembly"
 
 Kh, Mh, Mrh, Mr2h, M1rh, Gxrh, Gyrh, Gxh, Gyh = fem_matrix(x_global, y_global, num_ele_global,
-                                                           nodes_global, ien_global, alfa_global)
+                                                           nodes_global, ien_global, alfa_global, axisym_tri_global)
 
+Mdth = Mrh/dt
 Mdt = Mr/dt
-K_ni = K * viscosity_kin
 
+print " Lumped Fluid"
 MLumpr = sp.zeros(nodes_fluid)
 MinvLumpr = sp.zeros(nodes_fluid)
 for i in range(nodes_fluid):
@@ -142,6 +143,14 @@ for i in range(nodes_fluid):
         MLumpr[i] += Mr[i, j]
     MinvLumpr[i] = 1. / MLumpr[i]
 
+print " Lumped Global"
+
+MLumprh = sp.zeros(nodes_global)
+MinvLumprh = sp.zeros(nodes_global)
+for i in range(nodes_global):
+    for j in range(nodes_global):
+        MLumprh[i] += Mrh[i, j]
+    MinvLumprh[i] = 1. / MLumprh[i]
 
 # ---------------------------------------
 # Boundary and Initial Condition
@@ -222,16 +231,19 @@ for i in range(nodes_fluid):
               gg * (R2**2 - R1**2) * (sp.log(ri/R1) / sp.log(R2/R1))
 
     c0 = gg * 0.25 * R1**4 - gg * (R2**2 - R1**2) * (1./sp.log(R2/R1)) * \
-         0.5 * R1**2 * 0.5
+        0.5 * R1**2 * 0.5
     psi_a[i] = gg * (0.5 * R1**2 * ri ** 2 - 0.25 * ri**4) + \
-               gg * (R2**2 - R1**2) * (1./sp.log(R2/R1)) * 0.5 * ri**2 * \
-               (sp.log(ri) - 0.5 - sp.log(R1)) - c0
+        gg * (R2**2 - R1**2) * (1./sp.log(R2/R1)) * 0.5 * ri**2 * \
+        (sp.log(ri) - 0.5 - sp.log(R1)) - c0
 
     omega_a[i] = 2 * gg * ri - gg * (R2**2 - R1**2) * (1./sp.log(R2/R1)) * (1./ri)
 
 
 # --------------------------------------
 # Psi K matrix with Dirichlet BC -- K_psi
+
+print " LHS_psi"
+
 
 K_psi = K + 2 * Gy
 ccpsi = sp.zeros(nodes_fluid)
@@ -270,11 +282,41 @@ for i in range(dirichlet_len_fluid):
 
 psi = linalg.solve(K_psi, F_psi)
 
+# --------------------------------------
+# K temperature
+
+print " LHS_t"
+
+dirichlet_len_global = len(global_mesh.dirichlet_points)
+
+temp_last = sp.zeros(nodes_global)
+
+LHS_temp = Mdth + Kh
+Var = sp.copy(LHS_temp)
+cctemp = sp.zeros(nodes_global)
+for i in range(dirichlet_len_global):
+    index = int(global_mesh.dirichlet_points[i][0] - 1)
+    value = global_mesh.dirichlet_points[i][1]
+    for j in range(nodes_global):
+        cctemp[j] -= value * Var[j, index]
+        if j != index:
+            LHS_temp[index, j] = 0
+            LHS_temp[j, index] = 0
+        else:
+            LHS_temp[index, j] = 1
+
+vz_global = sp.zeros(nodes_global)
+vr_global = sp.zeros(nodes_global)
+# --------------------------------------
+
 
 # ----------------------------------------------------------
 # -------------------- Time iteration ----------------------
+
+print " neighbours"
+
 neighbour = sl.neighbourElements(nodes_fluid, ien_fluid)
-neighbour = sl.neighbourElements(nodes_global, ien_global)
+neighbour_global = sl.neighbourElements(nodes_global, ien_global)
 for t in range(0, time):
     print "Solving System " + str((float(t)/time)*100) + "%"
 
@@ -288,8 +330,18 @@ for t in range(0, time):
             vz[index] = 2.
             # vz[index] = vz_a[index]
 
+
+    for i in range(nodes_global):
+        if Vel_points_convert[i] >= 0:
+            vz_global[i] = vz[int(Vel_points_convert[i])]
+            vr_global[i] = vr[int(Vel_points_convert[i])]
+        else:
+            vz_global[i] = 0
+            vr_global[i] = 0
+
+
     omega_dep = sl.Linear2D(nodes_fluid, neighbour, ien_fluid, x_fluid,
-                           y_fluid, vz, vr, dt, omega_last)
+                            y_fluid, vz, vr, dt, omega_last)
 
     # B.C. Vorticidade
     W_in = sp.multiply(MinvLumpr, (sp.dot(Gxr, vr) - sp.dot(Gyr, vz)))
@@ -300,7 +352,7 @@ for t in range(0, time):
     # Solução de Wz e Psi
     Conv = vr * sp.diag(Mr)
 
-    LHS_Ni = Mdt + K_ni - sp.diag(Conv) + M1r * viscosity_kin
+    LHS_Ni = Mdt + K * viscosity_kin - sp.diag(Conv) + M1r * viscosity_kin
     LHS_omega = sp.copy(LHS_Ni)
 
     for i in range(len(Fluid_Boundary_in)):
@@ -367,16 +419,29 @@ for t in range(0, time):
 
     psi = linalg.solve(K_psi, F_psi)
 
+    temp_dep = sl.Linear2D(nodes_global, neighbour_global, ien_global, x_global,
+                           y_global, vz_global, vr_global, dt, temp_last)
 
+    # --------------------------------------
+    # RHS matrix with Dirichlet BC
+
+    RHS_temp = sp.dot(Mdth, temp_dep) + cctemp
+    for i in range(dirichlet_len_global):
+        index = int(global_mesh.dirichlet_points[i][0] - 1)
+        RHS_temp[index] = global_mesh.dirichlet_points[i][1]
+
+    temp = linalg.solve(LHS_temp, RHS_temp)
 
 
     # Salvar VTK
-    vtk_t = IO.InOut(x_fluid, y_fluid, ien_fluid, nodes_fluid, num_ele_fluid, psi, omega, vz_a
-                     , psi_a, omega_a, vz, vr)
+    vtk_t = IO.InOut(x_global, y_global, ien_global, nodes_global, num_ele_global, temp, None, None
+                     , None, None, vz_global, vr_global)
     vtk_t.saveVTK(cwd+"/results", savename + str(t+1))
 
     omega_last = sp.copy(omega)
+    temp_last = sp.copy(temp
 
+                        )
     # Calculo de vz e vr
 
     vz = sp.multiply(MinvLumpr, sp.dot(Gy, psi))
