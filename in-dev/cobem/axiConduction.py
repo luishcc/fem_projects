@@ -182,6 +182,11 @@ for t in range(0, time):
 
     temp = sp.linalg.solve(LHS, RHS)
 
+    error = temp_ana - temp
+    error = sp.sqrt(sp.dot(error, error))
+    print error
+
+
     # Salvar VTK
     vtk_t = IO.InOut(x_global, y_global, ien_global, nodes_global, num_ele_global, temp_old, None, None
                      , temp_ana, abs(temp_ana-temp), None, None)
