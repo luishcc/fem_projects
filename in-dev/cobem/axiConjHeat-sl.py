@@ -152,6 +152,8 @@ MinvLumprh = sp.zeros(nodes_global)
 for i in range(nodes_global):
     if y_global[i]<= min(y_fluid):
         temp_last[i] = 10
+    else:
+        temp_last[i] = 1
     for j in range(nodes_global):
         MLumprh[i] += Mrh[i, j]
     MinvLumprh[i] = 1. / MLumprh[i]
@@ -231,7 +233,7 @@ R1 = min(y_fluid)
 R2 = max(y_fluid)
 for i in range(nodes_fluid):
     ri = y_fluid[i]
-    vz_a[i] = gg * (R1 - ri ** 2) + \
+    vz_a[i] = gg * (R1**2 - ri ** 2) + \
               gg * (R2**2 - R1**2) * (sp.log(ri/R1) / sp.log(R2/R1))
 
     c0 = gg * 0.25 * R1**4 - gg * (R2**2 - R1**2) * (1./sp.log(R2/R1)) * \
@@ -439,6 +441,10 @@ for t in range(0, time):
     vtk_t = IO.InOut(x_global, y_global, ien_global, nodes_global, num_ele_global, temp, None, None
                      , None, None, vz_global, vr_global)
     vtk_t.saveVTK(cwd+"/results", savename + str(t+1))
+
+    vtk = IO.InOut(x_fluid, y_fluid, ien_fluid, nodes_fluid, num_ele_fluid, psi, omega, vz_a
+                     , psi_a, omega_a, vz, vr)
+    vtk.saveVTK(cwd+"/results", savename + "-fld" + str(t+1))
 
     omega_last = sp.copy(omega)
     temp_last = sp.copy(temp
