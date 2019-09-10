@@ -25,13 +25,12 @@ in-dev/semi-lagrangean/results/*
 in-dev/cobem/results/
 in-dev/cobem/results/*
 in-dev/cobem/resultsTest/
-/home/luis/fem_projects/in-dev/ale/results/
-/home/luis/fem_projects/in-dev/ale/results
-/home/luis/fem_projects/in-dev/ale/results/*
 in-dev/cobem/resultsTest/*
 in-dev/test-sl/results/
 in-dev/test-sl/results/*
-
+in-dev/ale/results
+in-dev/ale/results/
+in-dev/ale/results/*
 in-dev/temp/results/*
 
 
