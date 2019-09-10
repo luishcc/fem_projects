@@ -4,6 +4,7 @@ import InOut as IO
 import scipy as sp
 import os
 import semiLagrangean as sl
+import matplotlib.pyplot as plt
 cwd = os.getcwd()
 
 mesh_file = "test"
@@ -18,7 +19,7 @@ num_ele = len(mesh.IEN)
 
 neighbour_ele, neighbour_nodes = sl.neighbourElements2(num_nodes, mesh.IEN)
 
-print mesh.Boundary_Nodes
+# print mesh.Boundary_Nodes
 
 def smoothMesh(_neighbour_nodes, _mesh, _x, _y, _dt, delT = 1):
 
@@ -92,8 +93,8 @@ def weightedSmoothMesh(_neighbour_nodes, _mesh, _x, _y, _dt, delT = 1):
                                (yy[index] - vertex_position[1])**2)
 #            distance = 1
 
-            #displacement_vector += (1./distance) * neighbour_positions[j]
-            #sumWeight += (1./distance)
+            # displacement_vector += (1./distance) * neighbour_positions[j]
+            # sumWeight += (1./distance)
 
             displacement_vector += (distance) * neighbour_positions[j]
             sumWeight += (distance)
@@ -136,38 +137,54 @@ def triAreaRelation(_a, _b, _c):
     area = sp.sqrt(s * (s-sa) * (s-sb) * (s-sc))
     return (3 * area * sp.sqrt(3)) / s**2
 
-def checkMesh(_mesh):
+def checkMesh(_ien, _x, _y):
     sum = 0
-    for e in len(_mesh.IEN):
-        v1 = [_mesh.X[_mesh.IEN[e][0]], _mesh.Y[_mesh.IEN[e][0]]]
-        v2 = [_mesh.X[_mesh.IEN[e][1]], _mesh.Y[_mesh.IEN[e][1]]]
-        v3 = [_mesh.X[_mesh.IEN[e][2]], _mesh.Y[_mesh.IEN[e][2]]]
+    for e in range(len(_ien)):
+        v1 = [_x[_ien[e][0]], _y[_ien[e][0]]]
+        v2 = [_x[_ien[e][1]], _y[_ien[e][1]]]
+        v3 = [_x[_ien[e][2]], _y[_ien[e][2]]]
         sum += triAreaRelation(v1, v2, v3)
-    return sum / len(_mesh.IEN)
-v1 = [0, sp.sqrt(3)]
-v2 = [1, 0]
-v3 = [-1, 0]
-
-print triArea(v1,v2,v3)
-print triAreaRelation(v1,v2,v3)
+    return sum / len(_ien)
 
 
 x2 = sp.copy(mesh.X)
 y2 = sp.copy(mesh.Y)
+
+x3 = sp.copy(mesh.X)
+y3 = sp.copy(mesh.Y)
+
 vtk_t = IO.InOut(x2, y2, mesh.IEN, num_nodes, num_ele, None, None, None, None, None, None, None)
 vtk_t.saveVTK(cwd + "/results", savename + str(0))
 
-iter = 1000
-for t in range(1, iter):
 
+iter = 2000
+t2 = sp.zeros(iter)
+t3 = sp.zeros(iter)
+for t in range(1, iter):
+    print "Iteration ", t, "/", iter
     x2, y2 = smoothMesh(neighbour_nodes, mesh, x2, y2, 0.001, delT=0.1)
-    # x2, y2 = weightedSmoothMesh(neighbour_nodes, mesh, x2, y2, 0.001, delT=0.1)
+    x3, y3 = weightedSmoothMesh(neighbour_nodes, mesh, x3, y3, 0.001, delT=0.1)
+
+    t2[t] = checkMesh(mesh.IEN, x2, y2)
+    t3[t] = checkMesh(mesh.IEN, x3, y3)
 
     vtk_t = IO.InOut(x2, y2, mesh.IEN, num_nodes, num_ele, None, None, None, None, None, None, None)
     vtk_t.saveVTK(cwd + "/results", savename + str(t))
 
+t1 = checkMesh(mesh.IEN, mesh.X, mesh.Y)
+t2[0] = t1
+t3[0] = t1
+print t1
 
-#print neighbour_nodes, "\n", neighbour_ele
+plt.figure(1)
+plt.title('Mesh Smoothing Technique')
+plt.plot(sp.linspace(0, iter, iter), t2, 'k', label='Laplacian')
+plt.plot(sp.linspace(0, iter, iter), t3, 'b', label='Weighted Laplacian')
+plt.legend(loc='0')
+plt.xlabel('iterations')
+plt.ylabel('Average Relation of Equilateral Triangles')
+plt.grid('on')
+plt.show()
 
 
 
