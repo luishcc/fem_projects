@@ -12,7 +12,7 @@ cwd = os.getcwd()
 #     Reading Mesh
 # -------------------------------------------------------
 
-mesh_file = "zalesak"
+mesh_file = "zalesak-coarse"
 
 fluid_mesh = gm.GMesh("mesh/" + mesh_file + ".msh")
 

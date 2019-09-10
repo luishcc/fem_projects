@@ -6,8 +6,8 @@ import os
 import semiLagrangean as sl
 cwd = os.getcwd()
 
-#mesh_file = "test"
-mesh_file = "test-s"
+mesh_file = "test"
+#mesh_file = "test-s"
 savename = mesh_file
 
 
