@@ -7,7 +7,7 @@ import semiLagrangean as sl
 cwd = os.getcwd()
 
 mesh_file = "test"
-#mesh_file = "test-s"
+# mesh_file = "test-s"
 savename = mesh_file
 
 
@@ -114,6 +114,43 @@ def weightedSmoothMesh(_neighbour_nodes, _mesh, _x, _y, _dt, delT = 1):
 
     return xx, yy
 
+def distance(_a,_b):
+    size = len(_a)
+    sum = 0
+    for i in range(size):
+        sum += (_b[i] - _a[i])**2
+    return sp.sqrt(sum)
+
+def triArea(_a, _b, _c):
+    sa = distance(_b, _c)
+    sb = distance(_a, _c)
+    sc = distance(_b, _a)
+    s = 0.5 * (sa + sb + sc)
+    return sp.sqrt(s * (s-sa) * (s-sb) * (s-sc))
+
+def triAreaRelation(_a, _b, _c):
+    sa = distance(_b, _c)
+    sb = distance(_a, _c)
+    sc = distance(_b, _a)
+    s = 0.5 * (sa + sb + sc)
+    area = sp.sqrt(s * (s-sa) * (s-sb) * (s-sc))
+    return (3 * area * sp.sqrt(3)) / s**2
+
+def checkMesh(_mesh):
+    sum = 0
+    for e in len(_mesh.IEN):
+        v1 = [_mesh.X[_mesh.IEN[e][0]], _mesh.Y[_mesh.IEN[e][0]]]
+        v2 = [_mesh.X[_mesh.IEN[e][1]], _mesh.Y[_mesh.IEN[e][1]]]
+        v3 = [_mesh.X[_mesh.IEN[e][2]], _mesh.Y[_mesh.IEN[e][2]]]
+        sum += triAreaRelation(v1, v2, v3)
+    return sum / len(_mesh.IEN)
+v1 = [0, sp.sqrt(3)]
+v2 = [1, 0]
+v3 = [-1, 0]
+
+print triArea(v1,v2,v3)
+print triAreaRelation(v1,v2,v3)
+
 
 x2 = sp.copy(mesh.X)
 y2 = sp.copy(mesh.Y)
@@ -123,8 +160,8 @@ vtk_t.saveVTK(cwd + "/results", savename + str(0))
 iter = 1000
 for t in range(1, iter):
 
-    #x2, y2 = smoothMesh(neighbour_nodes, mesh, x2, y2, 0.001, delT=0.1)
-    x2, y2 = weightedSmoothMesh(neighbour_nodes, mesh, x2, y2, 0.001, delT=0.1)
+    x2, y2 = smoothMesh(neighbour_nodes, mesh, x2, y2, 0.001, delT=0.1)
+    # x2, y2 = weightedSmoothMesh(neighbour_nodes, mesh, x2, y2, 0.001, delT=0.1)
 
     vtk_t = IO.InOut(x2, y2, mesh.IEN, num_nodes, num_ele, None, None, None, None, None, None, None)
     vtk_t.saveVTK(cwd + "/results", savename + str(t))
