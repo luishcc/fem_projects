@@ -7,7 +7,8 @@
 import numpy as np
 
 class InOut:
- def __init__(_self,_X,_Y,_IEN,_numVerts,_numElems,_scalar, _scalar2, _scalar3, _scalar4, _scalar5, _vet1, _vet2):
+ def __init__(_self,_X,_Y,_IEN,_numVerts,_numElems,_scalar, _scalar2, _scalar3, _scalar4, _scalar5,
+              _vet1, _vet2, _vet3, _vet4):
   _self.X = _X
   _self.Y = _Y
   _self.IEN = _IEN
@@ -20,6 +21,8 @@ class InOut:
   _self.scalar5 = _scalar5
   _self.vet1 = _vet1
   _self.vet2 = _vet2
+  _self.vet3 = _vet3
+  _self.vet4 = _vet4
 
 
  def saveVTK(_self,_dir,_file,_iter=None):
@@ -53,6 +56,9 @@ class InOut:
 
   if _self.vet1 is not None:
    _self.vtkVector(vtkFile,"Velocity",_self.vet1, _self.vet2);
+
+  if _self.vet3 is not None:
+   _self.vtkVector(vtkFile,"Velocity-sl",_self.vet3, _self.vet4);
 
   vtkFile.close()
 

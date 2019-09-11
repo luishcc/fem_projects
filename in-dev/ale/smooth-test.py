@@ -60,8 +60,6 @@ def smoothMesh(_neighbour_nodes, _mesh, _x, _y, _dt, delT = 1):
 
       #  print nghN, "\n", distance_vectors, "\n", displacement_vector, "\n", new_position
 
-
-
     return xx, yy
 
 def weightedSmoothMesh(_neighbour_nodes, _mesh, _x, _y, _dt, delT = 1):
@@ -108,10 +106,7 @@ def weightedSmoothMesh(_neighbour_nodes, _mesh, _x, _y, _dt, delT = 1):
         xx[i] = new_position[0]
         yy[i] = new_position[1]
 
-
       #  print nghN, "\n", distance_vectors, "\n", displacement_vector, "\n", new_position
-
-
 
     return xx, yy
 
