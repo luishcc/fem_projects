@@ -228,7 +228,8 @@ for t in range(0, tempo-1):
     y = y + vyAle * dt
     K, M, Gx, Gy = fem_matrix(x, y, num_ele, nodes, ien)
 
-    MinvLump = linalg.inv(MLump)
+
+    MinvLump = linalg.inv(M)
 
     # B.C. Vorticidade
     Wcc = sp.dot(MinvLump, (sp.dot(Gx, vy) - sp.dot(Gy, vx)))
