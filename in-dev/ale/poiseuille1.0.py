@@ -21,9 +21,9 @@ dt = 0.01
 tempo = 100
 Re = 10
 
-p_lagrange = 0
-p_smooth = 0.0
-p_wave = 1
+p_lagrange = 0.4
+p_smooth = 0.8
+p_wave = 0
 
 
 def smoothMesh(_neighbour_nodes, _mesh, _x, _y, _dt):
