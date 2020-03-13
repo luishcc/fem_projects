@@ -21,8 +21,13 @@ dt = 0.01
 tempo = 100
 Re = 10
 
+<<<<<<< HEAD
 p_lagrange = 0.2
 p_smooth = 1.
+=======
+p_lagrange = 0.4
+p_smooth = 0.8
+>>>>>>> e1d3b68bdae3f65dfaf0bfa5b349e426c22a65a4
 p_wave = 0
 
 
@@ -229,7 +234,11 @@ for t in range(0, tempo-1):
     K, M, Gx, Gy = fem_matrix(x, y, num_ele, nodes, ien)
 
 
+<<<<<<< HEAD
     MinvLump = linalg.inv(MLump)
+=======
+    MinvLump = linalg.inv(M)
+>>>>>>> e1d3b68bdae3f65dfaf0bfa5b349e426c22a65a4
 
     # B.C. Vorticidade
     Wcc = sp.dot(MinvLump, (sp.dot(Gx, vy) - sp.dot(Gy, vx)))
