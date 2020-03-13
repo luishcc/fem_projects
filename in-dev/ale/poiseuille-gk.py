@@ -21,9 +21,9 @@ dt = 0.01
 tempo = 100
 Re = 10
 
-p_lagrange = 0.2
-p_smooth = 1.
-p_wave = 0
+p_lagrange = 0
+p_smooth = 0.0
+p_wave = 1
 
 
 def smoothMesh(_neighbour_nodes, _mesh, _x, _y, _dt):
@@ -191,7 +191,7 @@ for i in range(num_bc):
 
 Psi_old = sp.linalg.solve(K_psi, F_psi)
 
-sp.random.seed(1)
+
 
 # ----------------------------------------------------------
 # ---------------------- Loop No Tempo ------------------------
@@ -216,18 +216,14 @@ for t in range(0, tempo-1):
         if x[index] == min(x) and max(y) > y[index] > min(y):
             vx[index] = 1.0
 
-    vx_sl = vx - vxAle
-    vy_sl = vy - vyAle
-    #Wz_dep = sl.Linear2D(nodes, neighbour, ien, x, y, vx, vy, dt, Wz_old)
-    Wz_dep = sl.Linear2D(nodes, neighbour_ele, ien, x, y, vx_sl, vy_sl, dt, Wz_old)
-
 
     # Solução de Wz e Psi
 
     x = x + vxAle * dt
     y = y + vyAle * dt
     K, M, Gx, Gy = fem_matrix(x, y, num_ele, nodes, ien)
-
+    K_Re = K / Re
+    Mdt = M / dt
 
     MinvLump = linalg.inv(MLump)
 
@@ -236,7 +232,8 @@ for t in range(0, tempo-1):
     ccomega = sp.zeros(nodes)
     #Wcc = sp.copy(bc_omega)
 
-    LHS = M / dt + K / Re
+    Conv = sp.dot(sp.diag(vx), Gx) + sp.dot(sp.diag(vy), Gy)
+    LHS = Mdt + K_Re + Conv
     LHS_omega = sp.copy(LHS)
 
     for i in range(num_bc):
@@ -250,7 +247,7 @@ for t in range(0, tempo-1):
             else:
                 LHS_omega[index, j] = 1
 
-    F_omega = sp.dot(M / dt, Wz_dep) + ccomega / Re
+    F_omega = sp.dot(Mdt, Wz_old) + ccomega / Re
 
     for i in range(num_bc):
         index = int(Boundary[i])
@@ -282,8 +279,8 @@ for t in range(0, tempo-1):
     Psi_new = sp.linalg.solve(K_psi, F_psi)
 
     # Salvar VTK
-    vtk = Io.InOut(x, y, ien, len(x), len(ien), Psi_old, Wz_old, Wz_dep, None, None, vx, vy, vx_sl, vy_sl)
-    vtk.saveVTK(cwd+"/results", arquivo + str(t+1))
+    vtk = Io.InOut(x, y, ien, len(x), len(ien), Psi_old, Wz_old, Wz_old, None, None, vx, vy, None, None)
+    vtk.saveVTK(cwd+"/results", arquivo + "GK" + str(t+1))
 
     Psi_old = sp.copy(Psi_new)
     Wz_old = sp.copy(Wz_new)
