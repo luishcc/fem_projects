@@ -31,6 +31,9 @@ in-dev/test-sl/results/*
 in-dev/ale/results
 in-dev/ale/results/
 in-dev/ale/results/*
+in-dev/ale-cavity/results
+in-dev/ale-cavity/results/
+in-dev/ale-cavity/results/*
 in-dev/temp/results/*
 
 
