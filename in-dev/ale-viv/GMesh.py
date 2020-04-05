@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import scipy as sp
+import meshio
 
 # Escrito por Luís Cunha
 # Última atualização : 27/10/2017
@@ -284,3 +285,17 @@ def smoothMesh(_neighbour_nodes, _mesh, _x, _y, _dt):
       #  print nghN, "\n", distance_vectors, "\n", displacement_vector, "\n", new_position
 
     return vx_disp, vy_disp
+
+
+#-----------------------------------------------------------
+#-------------------  MeshIO  ------------------------------
+#-----------------------------------------------------------
+
+def get_boundary_with_tag(file, tag):
+    mesh = meshio.read(file)
+    data_dict = mesh.cell_data_dict['gmsh:physical']['line']
+    points = []
+    for i in range(len(data_dict)):
+        if data_dict[i] == tag:
+            points.append(mesh.cells_dict['line'][i][0])
+    return points

@@ -3,12 +3,13 @@ import scipy as sp
 from scipy import linalg
 import InOut as Io
 import GMesh as Gm
+import meshio
 import os
 import semiLagrangean as sl
 
 cwd = os.getcwd()
 
-arquivo = "cavity"
+arquivo = "viv"
 
 malha = Gm.GMesh("mesh/"+arquivo+".msh")
 x = malha.X
@@ -18,12 +19,12 @@ nodes = len(x)
 num_ele = len(ien)
 
 dt = 0.01
-tempo = 500
-Re = 10000
+tempo = 200
+Re = 100
 
-p_lagrange = 0.9
-p_smooth = 1.
-p_wave = 0.
+p_lagrange = 0.0
+p_smooth = 0.
+p_wave = 0.0
 
 # ---------------------------------------
 # Wz, Psi e velocidade inicial
@@ -31,7 +32,7 @@ p_wave = 0.
 
 Psi_new = sp.zeros(nodes, dtype="float64")
 Wz_new = sp.zeros(nodes, dtype="float64")
-vx = sp.zeros(nodes, dtype="float64")
+vx = sp.zeros(nodes, dtype="float64") +1
 vy = sp.zeros(nodes, dtype="float64")
 
 # ---------------------------------------
@@ -92,8 +93,26 @@ K, M, Gx, Gy = fem_matrix(x, y, num_ele, nodes, ien)
 
 Boundary = sp.zeros(nodes)
 lista = []
+
+psi_bc = sp.zeros(nodes)
+
+cylinder = Gm.get_boundary_with_tag("mesh/"+arquivo+".msh", 5)
+center = 0
+len_cylinder = len(cylinder)
+for i in cylinder:
+    center += y[i] / len_cylinder
+
 for i in range(nodes):
-    if x[i] == 0.0 or y[i] == 0.0 or y[i] == 1.0 or x[i] == 1.0:
+    if y[i] == 0.0 :
+        Boundary[i] = i
+        psi_bc[i] = 0
+    elif y[i] == 2.0 :
+        Boundary[i] = i
+        psi_bc[i] = 1
+    elif i in cylinder:
+        Boundary[i] = i
+        psi_bc[i] = 0.5 * center
+    elif x[i] == 0.0 or x[i] == 5.0:
         Boundary[i] = i
     else:
         lista.append(i)
@@ -108,11 +127,13 @@ num_bc = len(Boundary)
 bc_omega = sp.zeros(nodes)
 for i in Boundary:
     j = int(i)
-    vy[j] = 0.0
-    if y[j] == 1.0:
+    vy[j] = 0.
+    if x[j] == 0.0:
         vx[j] = 1.0
-    else:
+    if x[j] != 5.0:
         vx[j] = 0.0
+
+
 
 Minv = sp.linalg.inv(M)
 Wz_old = sp.dot(Minv, (sp.dot(Gx, vy) - sp.dot(Gy, vx)))
@@ -122,8 +143,9 @@ ccpsi = sp.zeros(nodes)
 
 for i in range(num_bc):
     index = int(Boundary[i])
-    value = 0.0
-    if y[index] == 0.0 or y[index] == 1.0:
+    value = psi_bc[index]
+    if y[index] == 0.0 or y[index] == 2.0 or (index in cylinder):
+        ccpsi[index] -= value * K[j, index]
         for j in range(nodes):
             if j != index:
                 K_psi[index, j] = 0
@@ -131,10 +153,10 @@ for i in range(num_bc):
             else:
                 K_psi[index, j] = 1
 
-F_psi = sp.dot(M, Wz_old)
+F_psi = sp.dot(M, Wz_old) + ccpsi
 for i in range(num_bc):
     index = int(Boundary[i])
-    F_psi[index] = 0
+    F_psi[index] = psi_bc[index]
 
 Psi_old = sp.linalg.solve(K_psi, F_psi)
 
@@ -157,17 +179,17 @@ for t in range(0, tempo-1):
 
     for i in range(num_bc):
         index = int(Boundary[i])
-        vy[index] = 0.0
         vxAle[index] = 0
         vyAle[index] = 0
-        if y[index] == max(y):
+        vy[index] = 0.0
+        if x[index] == 0:
             vx[index] = 1.0
-        else:
+        if x[index] != 5.0:
             vx[index] = 0.0
+
 
     vx_sl = vx - vxAle
     vy_sl = vy - vyAle
-    #Wz_dep = sl.Linear2D(nodes, neighbour, ien, x, y, vx, vy, dt, Wz_old)
     Wz_dep = sl.Linear2D(nodes, neighbour_ele, ien, x, y, vx_sl, vy_sl, dt, Wz_old)
 
     # Solução de Wz e Psi
@@ -180,7 +202,7 @@ for t in range(0, tempo-1):
     # B.C. Vorticidade
     Wcc = sp.dot(Minv, (sp.dot(Gx, vy) - sp.dot(Gy, vx)))
     ccomega = sp.zeros(nodes)
-    #Wcc = sp.copy(bc_omega)
+
 
     LHS = M / dt + K / Re
     LHS_omega = sp.copy(LHS)
@@ -205,20 +227,24 @@ for t in range(0, tempo-1):
     Wz_new = sp.linalg.solve(LHS_omega, F_omega)
 
     K_psi = sp.copy(K)
+    ccpsi = sp.zeros(nodes)
 
     for i in range(num_bc):
         index = int(Boundary[i])
-        for j in range(nodes):
-            if j != index:
-                K_psi[index, j] = 0
-                K_psi[j, index] = 0
-            else:
-                K_psi[index, j] = 1
+        value = psi_bc[index]
+        if y[index] == 0.0 or y[index] == 2.0 or (index in cylinder):
+            for j in range(nodes):
+                ccpsi[j] -= value * K[j, index]
+                if j != index:
+                    K_psi[index, j] = 0
+                    K_psi[j, index] = 0
+                else:
+                    K_psi[index, j] = 1
 
-    F_psi = sp.dot(M, Wz_new)
+    F_psi = sp.dot(M, Wz_new) + ccpsi
     for i in range(num_bc):
         index = int(Boundary[i])
-        F_psi[index] = 0
+        F_psi[index] = psi_bc[index]
 
     Psi_new = sp.linalg.solve(K_psi, F_psi)
 
