@@ -18,9 +18,11 @@ ien = malha.IEN
 nodes = len(x)
 num_ele = len(ien)
 
-dt = 0.01
+dt = 0.001
 tempo = 200
 Re = 100
+v_in = Re
+psi_top = v_in * 10
 
 p_lagrange = 0.0
 p_smooth = 0.
@@ -32,7 +34,7 @@ p_wave = 0.0
 
 Psi_new = sp.zeros(nodes, dtype="float64")
 Wz_new = sp.zeros(nodes, dtype="float64")
-vx = sp.zeros(nodes, dtype="float64") +1
+vx = sp.zeros(nodes, dtype="float64") + v_in
 vy = sp.zeros(nodes, dtype="float64")
 
 # ---------------------------------------
@@ -106,13 +108,13 @@ for i in range(nodes):
     if y[i] == 0.0 :
         Boundary[i] = i
         psi_bc[i] = 0
-    elif y[i] == 2.0 :
+    elif y[i] == 10.0 :
         Boundary[i] = i
-        psi_bc[i] = 1
+        psi_bc[i] = psi_top
     elif i in cylinder:
         Boundary[i] = i
-        psi_bc[i] = 0.5 * center
-    elif x[i] == 0.0 or x[i] == 5.0:
+        psi_bc[i] = 0.1 * center * psi_top
+    elif x[i] == 0.0 or x[i] == 32.5:
         Boundary[i] = i
     else:
         lista.append(i)
@@ -127,11 +129,14 @@ num_bc = len(Boundary)
 bc_omega = sp.zeros(nodes)
 for i in Boundary:
     j = int(i)
-    vy[j] = 0.
     if x[j] == 0.0:
-        vx[j] = 1.0
-    if x[j] != 5.0:
-        vx[j] = 0.0
+        vx[j] = v_in
+    if x[j] != 32.5:
+        #vx[j] = 0.0
+        vy[j] = 0.
+        if j in cylinder:
+            vx[j] = 0
+
 
 
 
@@ -144,7 +149,7 @@ ccpsi = sp.zeros(nodes)
 for i in range(num_bc):
     index = int(Boundary[i])
     value = psi_bc[index]
-    if y[index] == 0.0 or y[index] == 2.0 or (index in cylinder):
+    if y[index] == 0.0 or y[index] == 10.0 or (index in cylinder):
         ccpsi[index] -= value * K[j, index]
         for j in range(nodes):
             if j != index:
@@ -181,11 +186,14 @@ for t in range(0, tempo-1):
         index = int(Boundary[i])
         vxAle[index] = 0
         vyAle[index] = 0
-        vy[index] = 0.0
+        #vy[index] = 0.0
         if x[index] == 0:
-            vx[index] = 1.0
-        if x[index] != 5.0:
-            vx[index] = 0.0
+            vx[index] = v_in
+        if x[index] != 32.5:
+            #vx[index] = 0.0
+            vy[index] = 0.0
+            if index in cylinder:
+                vx[index] = 0
 
 
     vx_sl = vx - vxAle
@@ -232,7 +240,7 @@ for t in range(0, tempo-1):
     for i in range(num_bc):
         index = int(Boundary[i])
         value = psi_bc[index]
-        if y[index] == 0.0 or y[index] == 2.0 or (index in cylinder):
+        if y[index] == 0.0 or y[index] == 10.0 or (index in cylinder):
             for j in range(nodes):
                 ccpsi[j] -= value * K[j, index]
                 if j != index:
@@ -251,7 +259,7 @@ for t in range(0, tempo-1):
     # Salvar VTK
     vtk = Io.InOut(x, y, ien, len(x), len(ien), Psi_old, Wz_old, Wz_dep,
                     None, None, vx, vy, vx_sl, vy_sl)
-    vtk.saveVTK(cwd+"/.results", arquivo + str(t+1))
+    vtk.saveVTK(cwd+"/results", arquivo + str(t+1))
 
     Psi_old = sp.copy(Psi_new)
     Wz_old = sp.copy(Wz_new)
