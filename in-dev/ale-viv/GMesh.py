@@ -286,6 +286,44 @@ def smoothMesh(_neighbour_nodes, _mesh, _x, _y, _dt):
 
     return vx_disp, vy_disp
 
+def smoothMesh_v2(_neighbour_nodes, _boundary, _x, _y, _dt):
+
+    xx = sp.copy(_x)
+    yy = sp.copy(_y)
+    vx_disp = sp.zeros(len(xx))
+    vy_disp = sp.zeros(len(xx))
+    for i in range(len(_neighbour_nodes)):
+
+        flag = 0
+        for k in _boundary:
+            if i == k:
+                flag = 1
+                break
+
+        if flag == 1:
+            continue
+
+        vertex_position = sp.array([xx[i], yy[i]])
+        nghN = _neighbour_nodes[i]
+        num_nghb = len(nghN)
+        distance_vectors = sp.zeros((num_nghb, 2))
+        displacement_vector = sp.zeros(2)
+        for j in range(num_nghb):
+            _index = nghN[j]
+            distance_vectors[j][0] = xx[_index] - vertex_position[0]
+            distance_vectors[j][1] = yy[_index] - vertex_position[1]
+            displacement_vector += distance_vectors[j]
+        displacement_vector *= (1./num_nghb)
+        displacement_velocity = displacement_vector / _dt
+        vx_disp[i] = displacement_velocity[0]
+        vy_disp[i] = displacement_velocity[1]
+    xx = xx + vx_disp *_dt
+    yy = yy + vy_disp *_dt
+
+      #  print nghN, "\n", distance_vectors, "\n", displacement_vector, "\n", new_position
+
+    return vx_disp, vy_disp, xx, yy
+
 
 #-----------------------------------------------------------
 #-------------------  MeshIO  ------------------------------
