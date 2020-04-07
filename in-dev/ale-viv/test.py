@@ -18,14 +18,14 @@ ien = malha.IEN
 nodes = len(x)
 num_ele = len(ien)
 
-dt = 0.001
-tempo = 400
+dt = 0.0005
+tempo = 200
 Re = 100
 v_in = Re
 psi_top = v_in * 10
 
 p_lagrange = 0.0
-p_smooth = 1.35
+p_smooth = 0.75
 p_wave = 0.0
 
 
@@ -78,35 +78,39 @@ for i in range(nodes):
 Boundary = sp.delete(Boundary, lista, axis=0)
 num_bc = len(Boundary)
 
-
 sp.random.seed(1)
 
-# ----------------------------------------------------------
+# -------------------------------------------------------------
 # ---------------------- Loop No Tempo ------------------------
 
 neighbour_ele, neighbour_nodes = sl.neighbourElements2(nodes, ien)
+for i in range(4):
+    vx_smooth, vy_smooth = Gm.weighted_smoothMesh(neighbour_nodes, Boundary, x, y, dt)
+    x = x + vx_smooth  * dt
+    y = y + vy_smooth * dt
 
 for t in range(0, tempo-1):
     print("Solving System " + str((float(t)/(tempo-1))*100) + "%")
 
-    y = move_cylinder(cylinder, y, 1.5, 2, t*dt, dt)
+    y = move_cylinder(cylinder, y, 0.3, 16, t*dt, dt)
 
-    vx_smooth = sp.zeros(nodes)
-    vy_smooth = sp.zeros(nodes)
-    for j in range(3):
-        vx_temp, vy_temp, x, y = Gm.smoothMesh_v2(neighbour_nodes, Boundary,
-                                                  x, y, dt)
-        vx_smooth += vx_temp
-        vy_smooth += vy_temp
+
+    #vx_smooth = sp.zeros(nodes)
+    #vy_smooth = sp.zeros(nodes)
+    # for j in range(1):
+    #     vx_temp, vy_temp, x, y = Gm.smoothMesh_v2(neighbour_nodes, Boundary,
+    #                                               x, y, dt)
+    #     vx_smooth += vx_temp
+    #     vy_smooth += vy_temp
+
+    vx_smooth, vy_smooth = Gm.weighted_smoothMesh(neighbour_nodes, Boundary, x, y, dt)
 
     vx_wave = sp.random.rand(nodes) * 0.2*sp.cos(2*sp.pi*5*t*dt)
     vy_wave = sp.random.rand(nodes) * 0.2*sp.cos(2*sp.pi*5*t*dt)
 
-    #vxAle = p_lagrange * vx + p_smooth * vx_smooth + p_wave * vx_wave
-    #vyAle = p_lagrange * vy + p_smooth * vy_smooth + p_wave * vy_wave
+    vxAle = p_lagrange * vx + p_smooth * vx_smooth + p_wave * vx_wave
+    vyAle = p_lagrange * vy + p_smooth * vy_smooth + p_wave * vy_wave
 
-    vxAle = p_lagrange * vx + vx_smooth + p_wave * vx_wave
-    vyAle = p_lagrange * vy + vy_smooth + p_wave * vy_wave
 
     for i in range(num_bc):
         index = int(Boundary[i])
@@ -122,8 +126,11 @@ for t in range(0, tempo-1):
     vx_sl = vx - vxAle
     vy_sl = vy - vyAle
 
-    x = x + (vxAle - vx_smooth) * dt
-    y = y + (vyAle - vy_smooth) * dt
+    # x = x + (vxAle - vx_smooth) * dt
+    # y = y + (vyAle - vy_smooth) * dt
+
+    x = x + vxAle  * dt
+    y = y + vyAle * dt
 
     # Salvar VTK
     vtk = Io.InOut(x, y, ien, len(x), len(ien), Psi_old, Wz_old, Wz_dep,
@@ -135,10 +142,10 @@ for t in range(0, tempo-1):
 #----------------- Fim de Loop -------------------
 #-------------------------------------------------
 
-for j in range(100):
-    vx_temp, vy_temp, x, y = Gm.smoothMesh_v2(neighbour_nodes, Boundary,
-                                              x, y, dt)
-
-vtk = Io.InOut(x, y, ien, len(x), len(ien), Psi_old, Wz_old, Wz_dep,
-                None, None, vx, vy, vx_sl, vy_sl)
-vtk.saveVTK(cwd+"/results", "move" + str(t+2))
+# for j in range(1000):
+#     vx_temp, vy_temp, x, y = Gm.smoothMesh_v2(neighbour_nodes, Boundary,
+#                                               x, y, dt)
+#
+# vtk = Io.InOut(x, y, ien, len(x), len(ien), Psi_old, Wz_old, Wz_dep,
+#                 None, None, vx, vy, vx_sl, vy_sl)
+# vtk.saveVTK(cwd+"/results", "move" + str(t+2))

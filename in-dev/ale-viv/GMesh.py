@@ -250,6 +250,15 @@ class GMesh:
 #-------------------- Other Mesh functions ----------------------------
 #----------------------------------------------------------------------
 
+
+def distance(_a,_b):
+    size = len(_a)
+    sum = 0
+    for i in range(size):
+        sum += (_b[i] - _a[i])**2
+    return sp.sqrt(sum)
+
+
 def smoothMesh(_neighbour_nodes, _mesh, _x, _y, _dt):
 
     xx = sp.copy(_x)
@@ -286,7 +295,7 @@ def smoothMesh(_neighbour_nodes, _mesh, _x, _y, _dt):
 
     return vx_disp, vy_disp
 
-def smoothMesh_v2(_neighbour_nodes, _boundary, _x, _y, _dt):
+def weighted_smoothMesh(_neighbour_nodes, _boundary, _x, _y, _dt):
 
     xx = sp.copy(_x)
     yy = sp.copy(_y)
@@ -308,21 +317,21 @@ def smoothMesh_v2(_neighbour_nodes, _boundary, _x, _y, _dt):
         num_nghb = len(nghN)
         distance_vectors = sp.zeros((num_nghb, 2))
         displacement_vector = sp.zeros(2)
+        sum_length = 0
         for j in range(num_nghb):
             _index = nghN[j]
-            distance_vectors[j][0] = xx[_index] - vertex_position[0]
-            distance_vectors[j][1] = yy[_index] - vertex_position[1]
+            length = distance([xx[_index], yy[_index]], vertex_position)
+            distance_vectors[j][0] = xx[_index] * (length)
+            distance_vectors[j][1] = yy[_index] * (length)
+            sum_length +=  (length)
             displacement_vector += distance_vectors[j]
-        displacement_vector *= (1./num_nghb)
+        displacement_vector = displacement_vector/sum_length - vertex_position
         displacement_velocity = displacement_vector / _dt
         vx_disp[i] = displacement_velocity[0]
         vy_disp[i] = displacement_velocity[1]
-    xx = xx + vx_disp *_dt
-    yy = yy + vy_disp *_dt
 
-      #  print nghN, "\n", distance_vectors, "\n", displacement_vector, "\n", new_position
 
-    return vx_disp, vy_disp, xx, yy
+    return vx_disp, vy_disp
 
 
 #-----------------------------------------------------------
