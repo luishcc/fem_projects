@@ -18,14 +18,14 @@ ien = malha.IEN
 nodes = len(x)
 num_ele = len(ien)
 
-dt = 0.0005
+dt = 0.0004
 tempo = 200
 Re = 100
 v_in = Re
 psi_top = v_in * 10
 
 p_lagrange = 0.0
-p_smooth = 0.75
+p_smooth = 0.7
 p_wave = 0.0
 
 
@@ -84,10 +84,10 @@ sp.random.seed(1)
 # ---------------------- Loop No Tempo ------------------------
 
 neighbour_ele, neighbour_nodes = sl.neighbourElements2(nodes, ien)
-for i in range(4):
+for i in range(100):
     vx_smooth, vy_smooth = Gm.weighted_smoothMesh(neighbour_nodes, Boundary, x, y, dt)
-    x = x + vx_smooth  * dt
-    y = y + vy_smooth * dt
+    x = x + p_smooth*vx_smooth  * dt
+    y = y + p_smooth*vy_smooth * dt
 
 for t in range(0, tempo-1):
     print("Solving System " + str((float(t)/(tempo-1))*100) + "%")

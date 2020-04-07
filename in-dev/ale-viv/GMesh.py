@@ -321,9 +321,9 @@ def weighted_smoothMesh(_neighbour_nodes, _boundary, _x, _y, _dt):
         for j in range(num_nghb):
             _index = nghN[j]
             length = distance([xx[_index], yy[_index]], vertex_position)
-            distance_vectors[j][0] = xx[_index] * (length)
-            distance_vectors[j][1] = yy[_index] * (length)
-            sum_length +=  (length)
+            distance_vectors[j][0] = xx[_index] * length
+            distance_vectors[j][1] = yy[_index] * length
+            sum_length +=  length
             displacement_vector += distance_vectors[j]
         displacement_vector = displacement_vector/sum_length - vertex_position
         displacement_velocity = displacement_vector / _dt
