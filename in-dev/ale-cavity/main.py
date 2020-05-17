@@ -17,12 +17,12 @@ ien = malha.IEN
 nodes = len(x)
 num_ele = len(ien)
 
-dt = 0.01
-tempo = 500
-Re = 10000
+dt = 0.006
+tempo = 1000
+Re = 100
 
 p_lagrange = 0.
-p_smooth = 0.
+p_smooth = 0.5
 p_wave = 0.
 
 # ---------------------------------------
