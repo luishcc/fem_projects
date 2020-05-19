@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+
 import scipy as sp
 from scipy import linalg
 import InOut as Io
@@ -113,7 +114,7 @@ for i in range(nodes):
         psi_bc[i] = psi_top
     elif i in cylinder:
         Boundary[i] = i
-        psi_bc[i] = 0.1 * center * psi_top
+        psi_bc[i] = 0.5 * psi_top
     elif x[i] == 0.0 or x[i] == 32.5:
         Boundary[i] = i
     else:
@@ -126,14 +127,16 @@ num_bc = len(Boundary)
 # Condições de contorno e Inicial
 # ---------------------------------------
 
+w_temp = sp.ones(nodes)
 bc_omega = sp.zeros(nodes)
 for i in Boundary:
     j = int(i)
     if x[j] == 0.0:
         vx[j] = v_in
     if x[j] != 32.5:
-        #vx[j] = 0.0
+        vx[j] = v_in
         vy[j] = 0.
+        w_temp[j] = 0
         if j in cylinder:
             vx[j] = 0
 
@@ -141,7 +144,7 @@ for i in Boundary:
 
 
 Minv = sp.linalg.inv(M)
-Wz_old = sp.dot(Minv, (sp.dot(Gx, vy) - sp.dot(Gy, vx)))
+Wz_old = sp.dot(Minv, (sp.dot(Gx, vy) - sp.dot(Gy, vx))) * w_temp
 
 K_psi = sp.copy(K)
 ccpsi = sp.zeros(nodes)
@@ -190,7 +193,7 @@ for t in range(0, tempo-1):
         if x[index] == 0:
             vx[index] = v_in
         if x[index] != 32.5:
-            #vx[index] = 0.0
+            vx[index] = v_in
             vy[index] = 0.0
             if index in cylinder:
                 vx[index] = 0
@@ -208,7 +211,7 @@ for t in range(0, tempo-1):
     Minv = linalg.inv(M)
 
     # B.C. Vorticidade
-    Wcc = sp.dot(Minv, (sp.dot(Gx, vy) - sp.dot(Gy, vx)))
+    Wcc = sp.dot(Minv, (sp.dot(Gx, vy) - sp.dot(Gy, vx))) * w_temp
     ccomega = sp.zeros(nodes)
 
 
