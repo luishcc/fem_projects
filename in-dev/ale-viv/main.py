@@ -1,16 +1,20 @@
 # -*- coding: utf-8 -*-
 
+import os
+os.environ["MKL_NUM_THREADS"] = "4" 
+os.environ["NUMEXPR_NUM_THREADS"] = "4" 
+os.environ["OMP_NUM_THREADS"] = "4" 
+
 import scipy as sp
 from scipy import linalg
 import InOut as Io
 import GMesh as Gm
 import meshio
-import os
 import semiLagrangean as sl
 
 cwd = os.getcwd()
 
-arquivo = "viv"
+arquivo = "vivTest"
 
 malha = Gm.GMesh("mesh/"+arquivo+".msh")
 x = malha.X
@@ -20,13 +24,13 @@ nodes = len(x)
 num_ele = len(ien)
 
 dt = 0.001
-tempo = 200
+tempo = 400
 Re = 100
 v_in = Re
 psi_top = v_in * 10
 
-p_lagrange = 0.0
-p_smooth = 0.
+p_lagrange = 0.2
+p_smooth = 0.9
 p_wave = 0.0
 
 # ---------------------------------------
@@ -131,14 +135,14 @@ w_temp = sp.ones(nodes)
 bc_omega = sp.zeros(nodes)
 for i in Boundary:
     j = int(i)
-    if x[j] == 0.0:
+    if y[j] == 10 or y[j]==0 or x[j] ==0:
         vx[j] = v_in
-    if x[j] != 32.5:
-        vx[j] = v_in
+    if x[j] != 32.5:    
         vy[j] = 0.
         w_temp[j] = 0
         if j in cylinder:
             vx[j] = 0
+            w_temp[j] = 1
 
 
 
@@ -178,22 +182,23 @@ neighbour_ele, neighbour_nodes = sl.neighbourElements2(nodes, ien)
 for t in range(0, tempo-1):
     print("Solving System " + str((float(t)/(tempo-1))*100) + "%")
 
-    vx_smooth, vy_smooth = Gm.smoothMesh(neighbour_nodes, malha, x, y, dt)
-    vx_wave = sp.random.rand(nodes) * 0.2*sp.cos(2*sp.pi*5*t*dt)
-    vy_wave = sp.random.rand(nodes) * 0.2*sp.cos(2*sp.pi*5*t*dt)
+#    vx_smooth, vy_smooth = Gm.smoothMesh(neighbour_nodes, malha, x, y, dt)
+    vx_smooth, vy_smooth = Gm.weighted_smoothMesh(neighbour_nodes, Boundary, x, y, dt)
 
-    vxAle = p_lagrange * vx + p_smooth * vx_smooth + p_wave * vx_wave
-    vyAle = p_lagrange * vy + p_smooth * vy_smooth + p_wave * vy_wave
+#    vx_wave = sp.random.rand(nodes) * 0.2*sp.cos(2*sp.pi*5*t*dt)
+#    vy_wave = sp.random.rand(nodes) * 0.2*sp.cos(2*sp.pi*5*t*dt)
+
+    vxAle = p_lagrange * vx + p_smooth * vx_smooth #+ p_wave * vx_wave
+    vyAle = p_lagrange * vy + p_smooth * vy_smooth #+ p_wave * vy_wave
 
     for i in range(num_bc):
         index = int(Boundary[i])
         vxAle[index] = 0
         vyAle[index] = 0
         #vy[index] = 0.0
-        if x[index] == 0:
+        if x[index] == 0 or y[j] == 10 or y[j] == 0:
             vx[index] = v_in
         if x[index] != 32.5:
-            vx[index] = v_in
             vy[index] = 0.0
             if index in cylinder:
                 vx[index] = 0
