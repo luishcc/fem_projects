@@ -192,8 +192,7 @@ ccpsi = sp.zeros(nodes)
 for i in range(num_bc):
     index = int(Boundary[i])
     value = psi_bc[index]
-    if y[index] == 0.0 or y[index] == 10.0 or \
-    (index in cylinder) or x[index] == 0:
+    if y[index] == 0.0 or y[index] == 10.0 or (index in cylinder):
         ccpsi[index] -= value * K[j, index]
         for j in range(nodes):
             if j != index:
@@ -233,7 +232,6 @@ for t in range(0, tempo-1):
 
     time_start_smooth = timer()
 
-    cyl_vel = 0
     y, cylinder_center, cyl_vel = move_cylinder(cylinder, y, 0.3, 16, t*dt, dt)
     for i in cylinder:
         psi_bc[i] = 0.1 * psi_top * cylinder_center
@@ -322,8 +320,7 @@ for t in range(0, tempo-1):
     for i in range(num_bc):
         index = int(Boundary[i])
         value = psi_bc[index]
-        if y[index] == 0.0 or y[index] == 10.0 or \
-        (index in cylinder) or x[index] == 0:
+        if y[index] == 0.0 or y[index] == 10.0 or (index in cylinder):
             for j in range(nodes):
                 ccpsi[j] -= value * K[j, index]
                 if j != index:
