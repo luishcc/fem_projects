@@ -18,8 +18,8 @@ ien = malha.IEN
 nodes = len(x)
 num_ele = len(ien)
 
-dt = 0.001
-tempo = 200
+dt = 0.0001
+tempo = 300
 
 p_smooth = 0.7
 
@@ -75,6 +75,15 @@ sp.random.seed(1)
 
 print("Neighbour Elements ")
 neighbour_ele, neighbour_nodes = sl.neighbourElements2(nodes, ien)
+
+neighbourfile = open(arquivo + "-neighbourNodes.txt", "w")
+neighbourfile2 = open(arquivo + "-neighbourElements.txt", "w")
+for i in len(neighbour_nodes):
+    nodes_temp = str(neighbour_nodes[i])
+    ele_temp = str(neighbour_ele[i])
+    neighbourfile.writelines(nodes_temp+"\n")
+    neighbourfile2.writelines(ele_temp+"\n")
+
 # for i in range(1):
 #     vx_smooth, vy_smooth = Gm.weighted_smoothMesh(neighbour_nodes, Boundary, x, y, dt)
 #     x = x + p_smooth*vx_smooth  * dt
