@@ -78,7 +78,7 @@ neighbour_ele, neighbour_nodes = sl.neighbourElements2(nodes, ien)
 
 neighbourfile = open(arquivo + "-neighbourNodes.txt", "w")
 neighbourfile2 = open(arquivo + "-neighbourElements.txt", "w")
-for i in len(neighbour_nodes):
+for i in range(len(neighbour_nodes)):
     nodes_temp = str(neighbour_nodes[i])
     ele_temp = str(neighbour_ele[i])
     neighbourfile.writelines(nodes_temp+"\n")
